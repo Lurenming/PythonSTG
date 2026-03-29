@@ -3,7 +3,10 @@
   "name": "tenshi",
   "description": "",
   "author": "",
-  "texture": "tenshi_test_1.png",
+  "textures": {
+    "player": "tenshi_test_1.png",
+    "bullet": "pixil-frame-0 (4).png"
+  },
   "render_size_px": 64,
   "render_downsample": true,
   "stats": {
@@ -11,8 +14,8 @@
     "speed_low": 0.008,
     "hitbox_radius": 3.0,
     "graze_radius": 8.0,
-    "hitbox_offset_x": -5.5,
-    "hitbox_offset_y": -1.5
+    "hitbox_offset_x": -0.125,
+    "hitbox_offset_y": 0.5
   },
   "initial": {
     "lives": 1,
@@ -26,7 +29,8 @@
         0,
         145,
         145
-      ]
+      ],
+      "source": "player"
     },
     "right": {
       "rect": [
@@ -34,7 +38,8 @@
         145,
         145,
         145
-      ]
+      ],
+      "source": "player"
     },
     "left": {
       "rect": [
@@ -42,31 +47,79 @@
         290,
         145,
         145
-      ]
+      ],
+      "source": "player"
+    },
+    "laser2": {
+      "rect": [
+        7,
+        0,
+        5,
+        12
+      ],
+      "source": "bullet"
+    },
+    "laser1": {
+      "rect": [
+        1,
+        0,
+        6,
+        12
+      ],
+      "source": "bullet"
     }
   },
   "animations": {
     "transition_speed": 8.0,
+    "full_tilt_frames": 1,
     "animations": {
       "idle": {
         "frames": [
           "normal"
         ],
-        "fps": 1,
+        "frame_duration": 60,
         "loop": true
       },
       "move_left": {
         "frames": [
           "right"
         ],
-        "fps": 1,
+        "frame_duration": 60,
         "loop": true
       },
       "move_right": {
         "frames": [
           "left"
         ],
-        "fps": 1,
+        "frame_duration": 60,
+        "loop": true
+      },
+      "move_left_full": {
+        "frames": [
+          "right"
+        ],
+        "frame_duration": 60,
+        "loop": true
+      },
+      "move_right_full": {
+        "frames": [
+          "left"
+        ],
+        "frame_duration": 60,
+        "loop": true
+      },
+      "focus": {
+        "frames": [
+          "normal"
+        ],
+        "frame_duration": 60,
+        "loop": true
+      },
+      "death": {
+        "frames": [
+          "normal"
+        ],
+        "frame_duration": 60,
         "loop": true
       }
     }
@@ -81,5 +134,8 @@
       "sprite": "player_bullet"
     }
   },
-  "options": []
+  "options": [],
+  "bullet_anims": {},
+  "option_anims": {},
+  "skills": []
 }
