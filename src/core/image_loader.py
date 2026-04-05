@@ -215,21 +215,42 @@ class FontRenderer:
         except Exception:
             self._font = ImageFont.load_default()
 
-    def render(self, text: str, antialias: bool = True, color=(255, 255, 255)) -> SoftwareSurface:
+    def render(
+        self,
+        text: str,
+        antialias: bool = True,
+        color=(255, 255, 255),
+        stroke_width: int = 0,
+        stroke_color=(0, 0, 0),
+    ) -> SoftwareSurface:
         """Render text to a SoftwareSurface."""
         if not text:
             return SoftwareSurface(1, max(1, self._size))
         color = tuple(color)
         if len(color) == 3:
             color = (*color, 255)
+        stroke_width = max(0, int(stroke_width))
+        stroke_color = tuple(stroke_color)
+        if len(stroke_color) == 3:
+            stroke_color = (*stroke_color, 255)
 
         bbox = self._font.getbbox(text)
-        w = max(1, int(bbox[2] - bbox[0]))
-        h = max(1, int(bbox[3] - bbox[1]))
+        base_w = max(1, int(bbox[2] - bbox[0]))
+        base_h = max(1, int(bbox[3] - bbox[1]))
+        w = base_w + stroke_width * 2
+        h = base_h + stroke_width * 2
 
         img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
-        draw.text((-bbox[0], -bbox[1]), text, font=self._font, fill=color)
+        origin_x = -bbox[0] + stroke_width
+        origin_y = -bbox[1] + stroke_width
+        if stroke_width > 0:
+            for dx in range(-stroke_width, stroke_width + 1):
+                for dy in range(-stroke_width, stroke_width + 1):
+                    if dx == 0 and dy == 0:
+                        continue
+                    draw.text((origin_x + dx, origin_y + dy), text, font=self._font, fill=stroke_color)
+        draw.text((origin_x, origin_y), text, font=self._font, fill=color)
 
         return SoftwareSurface(img)
 

@@ -11,7 +11,7 @@ import numpy as np
 import os
 from typing import Dict, Any, Optional
 
-from ..core.image_loader import SoftwareSurface, FontRenderer
+from ..core.image_loader import SoftwareSurface, FontRenderer, load_image_surface
 from .main_menu_layout import default_layout
 
 
@@ -30,6 +30,8 @@ class MainMenuRenderer:
         if not os.path.exists(font_path):
             font_path = None
         self._font_path = font_path
+        self._background_surface: Optional[SoftwareSurface] = None
+        self._load_background_image()
 
         # 字体缓存: size -> FontRenderer
         self._font_cache: Dict[int, FontRenderer] = {}
@@ -71,6 +73,19 @@ class MainMenuRenderer:
         )
         self._texture = None
 
+    def _load_background_image(self):
+        bg_paths = [
+            os.path.join("assets", "ui", "title.jpg"),
+            os.path.join("assets", "ui", "title.png"),
+            os.path.join("assets", "title.jpg"),
+            os.path.join("assets", "title.png"),
+        ]
+        for bg_path in bg_paths:
+            if os.path.exists(bg_path):
+                self._background_surface = load_image_surface(bg_path)
+                return
+        self._background_surface = None
+
     def _get_font(self, size: int) -> FontRenderer:
         """按字号获取字体，带缓存。"""
         if size not in self._font_cache:
@@ -105,15 +120,19 @@ class MainMenuRenderer:
         sw, sh = self.screen_width, self.screen_height
         surface = SoftwareSurface(sw, sh)
 
-        bg = layout.get("bg_gradient", {"top": [12, 8, 28], "bottom": [20, 20, 44]})
-        top = bg.get("top", [12, 8, 28])
-        bot = bg.get("bottom", [20, 20, 44])
-        for y in range(sh):
-            t = y / sh
-            r = int(top[0] + (bot[0] - top[0]) * t)
-            g = int(top[1] + (bot[1] - top[1]) * t)
-            b = int(top[2] + (bot[2] - top[2]) * t)
-            surface.draw_line((r, g, b), (0, y), (sw, y))
+        if self._background_surface is not None:
+            scaled = SoftwareSurface.smoothscale(self._background_surface, (sw, sh))
+            surface.blit(scaled, (0, 0))
+        else:
+            bg = layout.get("bg_gradient", {"top": [12, 8, 28], "bottom": [20, 20, 44]})
+            top = bg.get("top", [12, 8, 28])
+            bot = bg.get("bottom", [20, 20, 44])
+            for y in range(sh):
+                t = y / sh
+                r = int(top[0] + (bot[0] - top[0]) * t)
+                g = int(top[1] + (bot[1] - top[1]) * t)
+                b = int(top[2] + (bot[2] - top[2]) * t)
+                surface.draw_line((r, g, b), (0, y), (sw, y))
 
         center_x = sw // 2
         opt_colors = layout.get("option_colors", {"normal": [160, 160, 180], "selected": [255, 255, 200]})
@@ -128,7 +147,13 @@ class MainMenuRenderer:
         y_ratio = float(title_cfg.get("y_ratio", 0.25))
         y = int(sh * y_ratio)
         font_title = self._get_font(title_size)
-        s_title = font_title.render(title_text, True, title_color)
+        s_title = font_title.render(
+            title_text,
+            True,
+            title_color,
+            stroke_width=max(2, title_size // 24),
+            stroke_color=(20, 20, 30),
+        )
         surface.blit(s_title, (center_x - s_title.get_width() // 2, y))
         y += s_title.get_height() + 60
 
@@ -141,7 +166,13 @@ class MainMenuRenderer:
             opt_text = opt.get("text", "") if isinstance(opt, dict) else str(opt)
             color = col_sel if i == selected_index else col_norm
             prefix = "> " if i == selected_index else "  "
-            s = font_option.render(prefix + opt_text, True, color)
+            s = font_option.render(
+                prefix + opt_text,
+                True,
+                color,
+                stroke_width=max(1, opt_font_size // 24),
+                stroke_color=(16, 16, 24),
+            )
             surface.blit(s, (center_x - s.get_width() // 2, y))
             y += option_spacing
 
@@ -152,7 +183,13 @@ class MainMenuRenderer:
         hint_color = tuple(hint_cfg.get("color", [100, 100, 120]))
         hint_y_offset = int(hint_cfg.get("y_offset", -50))
         font_hint = self._get_font(hint_size)
-        s_hint = font_hint.render(hint_text, True, hint_color)
+        s_hint = font_hint.render(
+            hint_text,
+            True,
+            hint_color,
+            stroke_width=1,
+            stroke_color=(12, 12, 18),
+        )
         hint_y = sh + hint_y_offset if hint_y_offset < 0 else hint_y_offset
         surface.blit(s_hint, (center_x - s_hint.get_width() // 2, hint_y))
 
