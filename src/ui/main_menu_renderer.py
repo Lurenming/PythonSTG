@@ -135,7 +135,8 @@ class MainMenuRenderer:
         # 菜单项
         options = layout.get("options", [{"text": "开始游戏"}, {"text": "退出"}])
         option_spacing = int(layout.get("option_spacing", 48))
-        font_option = self._get_font(32)  # 选项使用 32 号字
+        opt_font_size = int(layout.get("option_font_size", 32))
+        font_option = self._get_font(opt_font_size)  # 选项字体大小可配置
         for i, opt in enumerate(options):
             opt_text = opt.get("text", "") if isinstance(opt, dict) else str(opt)
             color = col_sel if i == selected_index else col_norm

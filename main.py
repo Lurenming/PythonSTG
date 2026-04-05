@@ -86,35 +86,65 @@ def build_debug_menu(stage_class):
     return entries
 
 
-def show_debug_menu(stage_class):
-    """在控制台显示 Debug 跳转菜单，返回用户选择的 target 或 None"""
+def run_debug_menu(window, ctx, screen_size, stage_class):
+    """在 GUI 中显示 Debug 跳转菜单，处理用户输入并返回选择的 target 或 None"""
+    from src.ui.main_menu_renderer import MainMenuRenderer
+    from src.core.window import FrameClock, EVENT_QUIT, EVENT_KEYDOWN
+    from src.core.input_manager import KEY_UP, KEY_DOWN, KEY_z, KEY_ESCAPE
+
     stage_name = getattr(stage_class, 'name', stage_class.__name__)
     entries = build_debug_menu(stage_class)
+    
+    # 构建适合 Debug 菜单的布局
+    # 为了容纳更多选项，缩小字体，减小间距，并将整体上移
+    layout = {
+        "bg_gradient": {"top": [20, 10, 10], "bottom": [40, 20, 20]}, # 偏红背景区别于主菜单
+        "title": {
+            "text": f"Debug: {stage_name}",
+            "font_size": 36,
+            "color": [255, 200, 200],
+            "y_ratio": 0.05
+        },
+        "options": [{"text": entry["label"]} for entry in entries],
+        "option_spacing": 26,             # 间距更紧凑
+        "option_font_size": 22,           # 字体更小
+        "option_colors": {"normal": [180, 180, 180], "selected": [255, 255, 100]},
+        "hint": {
+            "text": "方向键 ↑↓ 选择  Z 确认  ESC 从头开始",
+            "font_size": 18,
+            "color": [150, 150, 150],
+            "y_offset": -30
+        }
+    }
 
-    print(f"\n{'='*40}")
-    print(f"  Debug Mode: {stage_name}")
-    print(f"{'='*40}")
-    for i, entry in enumerate(entries):
-        print(f"  [{i}] {entry['label']}")
-    print(f"{'='*40}")
+    renderer = MainMenuRenderer(ctx, screen_size[0], screen_size[1])
+    num_options = len(entries)
+    selected_index = 0
+    clock = FrameClock()
 
     while True:
-        try:
-            raw = input(f"选择跳转目标 [0-{len(entries)-1}]: ").strip()
-            if not raw:
-                choice = 0
-            else:
-                choice = int(raw)
-            if 0 <= choice < len(entries):
-                target = entries[choice]["target"]
-                if target:
-                    print(f"  >> 跳转到: {entries[choice]['label'].strip()}")
-                else:
-                    print(f"  >> 从头开始")
-                return target
-        except (ValueError, EOFError):
-            pass
-        print(f"  请输入 0~{len(entries)-1} 的数字")
+        clock.tick(60)
+
+        for event in window.poll_events():
+            if event['type'] == EVENT_QUIT:
+                renderer.cleanup()
+                return None
+            if event['type'] == EVENT_KEYDOWN:
+                if event['key'] == KEY_UP:
+                    selected_index = (selected_index - 1) % num_options
+                elif event['key'] == KEY_DOWN:
+                    selected_index = (selected_index + 1) % num_options
+                elif event['key'] == KEY_z:
+                    renderer.cleanup()
+                    return entries[selected_index]["target"]
+                elif event['key'] == KEY_ESCAPE:
+                    renderer.cleanup()
+                    return None # 默认不跳过
+
+        ctx.viewport = (0, 0, screen_size[0], screen_size[1])
+        ctx.clear(0.0, 0.0, 0.0)
+        renderer.render(selected_index, layout=layout)
+        window.swap_buffers()
 
 
 def initialize_window_and_context():
@@ -311,9 +341,9 @@ def main():
                 background_renderer=background_renderer
             )
 
-            # ===== Debug: 显示跳转菜单 =====
+            # ===== Debug: 显示 GUI 跳转菜单 =====
             if DEBUG_MODE:
-                debug_target = show_debug_menu(Stage1)
+                debug_target = run_debug_menu(window, ctx, screen_size, Stage1)
                 if debug_target:
                     stage_manager.debug_skip_to = debug_target
 
