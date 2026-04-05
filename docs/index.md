@@ -26,7 +26,8 @@ Python 东方 Project 风格弹幕射击游戏引擎。
 
 ## 技术栈
 
-- **pygame-ce** + **ModernGL** — 渲染
+- **glfw** + **ModernGL** — 窗口与渲染
+- **miniaudio** — 音频
 - **Numba** — 子弹池 JIT 加速
 - **Python async/await** — 协程驱动的弹幕脚本
 - **PyQt5** — 编辑器工具

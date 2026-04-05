@@ -13,7 +13,7 @@
 ## 已完成 ✅
 
 ### 核心系统
-- [x] 基础游戏循环 (pygame-ce + ModernGL)
+- [x] 基础游戏循环 (glfw + ModernGL)
 - [x] 高性能子弹池 (Numba加速，20000+弹幕60fps)
 - [x] 碰撞检测 (判定点/擦弹)
 - [x] 激光系统 (直线激光、曲线激光)
@@ -89,7 +89,6 @@
 
 ## 待开发 📋
 
-- [ ] 游戏主菜单/标题画面
 - [ ] Replay录像系统
 - [ ] 游戏设置界面 (按键绑定/画质设置)
 - [ ] 可视化关卡编辑器
@@ -102,11 +101,13 @@
 
 ```bash
 # 依赖
-pip install pygame-ce moderngl numpy numba pillow
+pip install -r requirements.txt
 
 # 运行测试
 python main.py
 ```
+
+如果环境里出现 `Numba needs NumPy 2.0 or less` 一类错误，请使用与 `Numba` 兼容的 `numpy<2` 环境。
 
 ## 项目结构
 
@@ -125,6 +126,9 @@ tools/             # 编辑器工具
 assets/            # 游戏资源
 game_content/      # 关卡内容
 ```
+
+当前默认入口直接加载 `game_content/stages/stage1/stage_script.py`。  
+内容开发优先参考 `stage_script.py + BossDef + SpellCard/Wave/EnemyScript` 这一套程序化工作流。
 
 ---
 

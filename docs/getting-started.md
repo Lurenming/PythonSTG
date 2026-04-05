@@ -8,8 +8,11 @@
 ## 安装依赖
 
 ```bash
-pip install pygame-ce moderngl numpy numba pillow
+pip install -r requirements.txt
 ```
+
+如果遇到 `Numba needs NumPy 2.0 or less` 之类的报错，说明当前环境里的 `NumPy` 版本过高。  
+在当前项目状态下，建议优先使用与 `Numba` 兼容的 `numpy<2` 环境。
 
 编辑器工具额外需要：
 
@@ -34,7 +37,7 @@ pystg/
 │   ├── game/                # 游戏逻辑
 │   │   ├── bullet/          # 子弹池（Numba 加速）
 │   │   ├── player/          # 玩家系统
-│   │   ├── stage/           # 关卡系统核心（基类都在这里）
+│   │   ├── stage/           # 关卡系统核心（StageScript / Wave / SpellCard）
 │   │   ├── boss/            # Boss 管理
 │   │   ├── laser.py         # 激光系统
 │   │   ├── item.py          # 道具系统
@@ -45,7 +48,7 @@ pystg/
 │
 ├── game_content/            # 关卡内容（写弹幕在这里）
 │   └── stages/
-│       ├── stage1/          # 第 1 面（完整示例）
+│       ├── stage1/          # 第 1 面（当前默认入口）
 │       ├── stage2/          # 第 2 面（骨架）
 │       └── stage3/          # 第 3 面（骨架）
 │
@@ -64,7 +67,7 @@ pystg/
 │   ├── player/              # 自机编辑器
 │   └── ...
 │
-└── levels/                  # 关卡加载脚本
+└── levels/                  # 历史遗留目录（当前主流程不依赖）
 ```
 
 ## 核心概念
@@ -82,7 +85,7 @@ from src.game.stage.wave_base import Wave                   # 道中波次
 from src.game.stage.enemy_script import EnemyScript         # 敌人脚本
 ```
 
-所有弹幕逻辑通过 Python 协程（`async/await`）编写，`await self.wait(N)` 暂停 N 帧：
+当前主流程使用 Python 协程（`async/await`）编写，`await self.wait(N)` 暂停 N 帧：
 
 ```python
 class MySpell(SpellCard):
@@ -102,7 +105,7 @@ class MySpell(SpellCard):
 
 ## 一个关卡长什么样
 
-每个关卡是 `game_content/stages/` 下的一个文件夹：
+每个关卡是 `game_content/stages/` 下的一个文件夹，当前推荐入口是 `stage_script.py`：
 
 ```
 stage1/
@@ -151,3 +154,5 @@ class Stage1(StageScript):
 - **用预设快速出杂兵** → [敌人预设系统](ENEMY_PRESET_SYSTEM.md)
 - **用编辑器管理资源** → [编辑器工具](EDITOR_TOOLS_GUIDE.md)
 - **了解引擎内部** → [架构概览](architecture.md)
+
+写内容时请优先参考 `game_content/stages/stage1/` 下的现有脚本，而不是旧版 `stage.json` / `boss.json` 工作流。
