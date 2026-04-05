@@ -67,6 +67,10 @@ class StageScript:
         self._current_dialog_renderer = None  # 当前对话渲染器
         self._time: int = 0
 
+        # ===== Debug 跳转 =====
+        # 格式: {"type": "boss"/"midboss", "phase": 0} 或 None
+        self._debug_skip_target: Optional[dict] = None
+
     @property
     def time(self) -> int:
         """当前帧数"""
@@ -84,7 +88,8 @@ class StageScript:
 
     async def _run_wrapper(self):
         """包装 run() —— 播放 BGM 后执行主流程"""
-        if self.bgm:
+        # Debug 跳转模式下不播放道中 BGM（目标 Boss 会自行播放 Boss BGM）
+        if self.bgm and not self._debug_skip_target:
             self._play_bgm(self.bgm)
         try:
             await self.run()
@@ -134,6 +139,10 @@ class StageScript:
         Args:
             wave_class: Wave 子类（类本身，不是实例）
         """
+        # Debug: 跳过模式下直接返回
+        if self._debug_skip_target:
+            return
+
         wave = wave_class()
         wave.bind(self.ctx)
         yield from wave.execute()
@@ -149,6 +158,21 @@ class StageScript:
         """
         from .boss_base import BossBase
 
+        effective_type = "midboss" if is_midboss else "boss"
+        start_phase = 0
+
+        # Debug: 检查是否为跳转目标
+        if self._debug_skip_target:
+            target = self._debug_skip_target
+            if target["type"] == effective_type:
+                # 到达目标 Boss！退出跳过模式
+                start_phase = target.get("phase", 0)
+                self._debug_skip_target = None
+                print(f"[Debug] 跳转到 {effective_type}, phase={start_phase}")
+            else:
+                # 不是目标，跳过此 Boss
+                return
+
         # 切换到 Boss BGM（仅关底 Boss）
         if not is_midboss and self.boss_bgm:
             self._play_bgm(self.boss_bgm)
@@ -156,7 +180,12 @@ class StageScript:
         # 从 BossDef 创建 Boss 实例
         boss = BossBase.create(boss_def, self.ctx)
         self._current_boss = boss
-        boss.start()
+
+        # Debug: 从指定阶段开始
+        if start_phase > 0:
+            boss.start_phase_practice(start_phase)
+        else:
+            boss.start()
 
         # 等待 Boss 战结束
         while boss._active:
@@ -185,6 +214,9 @@ class StageScript:
                 ("Reiuji_Utsuho", "right", "哼！"),
             ])
         """
+        # Debug: 跳过模式下直接返回
+        if self._debug_skip_target:
+            return
         from .dialog_data import DialogSequence, DialogSentence
 
         # 转换为 DialogSentence 列表
@@ -270,6 +302,8 @@ class StageScript:
     @types.coroutine
     def wait(self, frames: int):
         """等待指定帧数"""
+        if self._debug_skip_target:
+            return
         for _ in range(frames):
             yield
 

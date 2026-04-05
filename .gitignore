@@ -7,3 +7,11 @@
 *.nbc
 *.nbi
 tmpclaude-*-cwd
+
+# Local report/export artifacts
+.edge-headless/
+.edge-headless-pdf/
+docs/project_assessment_*.md
+docs/project_assessment_*.html
+docs/project_assessment_*.pdf
+tools/render_markdown_pdf.py

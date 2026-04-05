@@ -41,6 +41,81 @@ from src.ui.hud import load_hud_layout
 from src.ui.bitmap_font import get_font_manager
 from game_content.stages.stage1.stage_script import Stage1
 
+# ===== Debug 模式 =====
+DEBUG_MODE = "--debug" in sys.argv
+
+
+def build_debug_menu(stage_class):
+    """从 StageScript 子类构建 Debug 跳转菜单"""
+    from src.game.stage.stage_base import BossDef
+    from src.game.stage.boss_base import BossPhaseType
+
+    entries = [{"label": "从头开始", "target": None}]
+
+    # 扫描类属性，查找 BossDef（保持声明顺序）
+    boss_attrs = []
+    for attr_name in vars(stage_class):
+        if attr_name.startswith('_'):
+            continue
+        attr = getattr(stage_class, attr_name, None)
+        if isinstance(attr, BossDef):
+            boss_attrs.append((attr_name, attr))
+
+    for attr_name, boss_def in boss_attrs:
+        is_midboss = "mid" in attr_name.lower()
+        effective_type = "midboss" if is_midboss else "boss"
+        type_label = "道中 Boss" if is_midboss else "Boss"
+
+        # Boss 入口（从第 0 阶段开始）
+        entries.append({
+            "label": f"{type_label}: {boss_def.name} ({boss_def.id})",
+            "target": {"type": effective_type, "phase": 0}
+        })
+
+        # 每个阶段
+        for i, phase in enumerate(boss_def.phases):
+            if phase.phase_type == BossPhaseType.SPELLCARD:
+                phase_label = phase.name or f"符卡 {i}"
+            else:
+                phase_label = f"通常攻撃 {i + 1}"
+            entries.append({
+                "label": f"  └ Phase {i}: {phase_label}",
+                "target": {"type": effective_type, "phase": i}
+            })
+
+    return entries
+
+
+def show_debug_menu(stage_class):
+    """在控制台显示 Debug 跳转菜单，返回用户选择的 target 或 None"""
+    stage_name = getattr(stage_class, 'name', stage_class.__name__)
+    entries = build_debug_menu(stage_class)
+
+    print(f"\n{'='*40}")
+    print(f"  Debug Mode: {stage_name}")
+    print(f"{'='*40}")
+    for i, entry in enumerate(entries):
+        print(f"  [{i}] {entry['label']}")
+    print(f"{'='*40}")
+
+    while True:
+        try:
+            raw = input(f"选择跳转目标 [0-{len(entries)-1}]: ").strip()
+            if not raw:
+                choice = 0
+            else:
+                choice = int(raw)
+            if 0 <= choice < len(entries):
+                target = entries[choice]["target"]
+                if target:
+                    print(f"  >> 跳转到: {entries[choice]['label'].strip()}")
+                else:
+                    print(f"  >> 从头开始")
+                return target
+        except (ValueError, EOFError):
+            pass
+        print(f"  请输入 0~{len(entries)-1} 的数字")
+
 
 def initialize_window_and_context():
     """初始化GLFW窗口和ModernGL上下文"""
@@ -235,7 +310,13 @@ def main():
                 audio_manager=audio_manager,
                 background_renderer=background_renderer
             )
-            
+
+            # ===== Debug: 显示跳转菜单 =====
+            if DEBUG_MODE:
+                debug_target = show_debug_menu(Stage1)
+                if debug_target:
+                    stage_manager.debug_skip_to = debug_target
+
             # 加载高分记录
             item_pool.stats.load_hiscore()
             

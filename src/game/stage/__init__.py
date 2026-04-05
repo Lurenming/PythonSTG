@@ -18,6 +18,7 @@ class StageManager:
         self.current_stage = None  # 当前 StageScript 实例（用于对话系统等）
         self.current_context = None  # 当前 StageContext 实例
         self.loading_info = None  # dict or None → 控制加载画面显示
+        self.debug_skip_to = None  # Debug 跳转目标, e.g. {"type": "boss", "phase": 2}
 
         # 引擎对象引用（由 bind_engine 设置）
         self._engine_refs = None
@@ -108,8 +109,9 @@ class StageManager:
         self.loading_info["hint"] = "Ready"
         yield
 
-        # 停留一段时间让玩家看到关卡信息
-        for _ in range(120):
+        # 停留一段时间让玩家看到关卡信息（Debug 模式下跳过）
+        wait_frames = 10 if self.debug_skip_to else 120
+        for _ in range(wait_frames):
             yield
 
         # ===== 阶段 2：开始关卡 =====
@@ -130,6 +132,13 @@ class StageManager:
         # 使用程序化关卡脚本
         stage = stage_class()
         stage.bind(ctx)
+
+        # Debug: 传入跳转目标
+        if self.debug_skip_to:
+            stage._debug_skip_target = self.debug_skip_to
+            self.debug_skip_to = None  # 只用一次
+            print(f"[Debug] 跳转目标已设置: {stage._debug_skip_target}")
+
         stage.start()
 
         # 保存 stage 对象到 stage_manager，供对话渲染使用
