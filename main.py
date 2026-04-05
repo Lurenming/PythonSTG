@@ -295,19 +295,18 @@ def main():
                                     dialog_active = dialog_state and hasattr(dialog_state, 'is_active') and dialog_state.is_active()
                                 
                                 if not dialog_active and not stage_manager.loading_info:
-                                    new_name = "tao" if player.name == "orin" else "orin"
+                                    _player_cycle = {"tao": "orin", "orin": "tenshi", "tenshi": "tao"}
+                                    new_name = _player_cycle.get(player.name, "tao")
                                     old_pos = list(player.pos)
                                     old_lives = player.lives
                                     old_power = player.power
                                     old_invinc = player.invincible_timer
-                                    old_bullet_pool = player.bullet_pool
                                     
                                     player = load_player(new_name)
                                     player.pos = old_pos
                                     player.lives = old_lives
                                     player.power = old_power
                                     player.invincible_timer = max(old_invinc, 0.5)  # 给个短暂无敌防判定死
-                                    player.bullet_pool = old_bullet_pool
                                     player.on_bomb_callback = _on_player_bomb
                                     
                                     # 强制清空渲染器的纹理缓存，以便下一次渲染加载新自机的图片
@@ -427,6 +426,36 @@ def main():
                                 if player.script and hasattr(player.script, 'on_bullet_hit_enemy'):
                                     player.script.on_bullet_hit_enemy(
                                         hit.bullet_idx, target, hit.damage)
+
+                        # === 自机激光碰撞检测 ===
+                        player_lasers = getattr(player, 'player_lasers', None)
+                        if player_lasers:
+                            for laser_data in player_lasers:
+                                lx = laser_data['x']
+                                ly = laser_data.get('y', -1.0)
+                                laser_dmg = laser_data.get('damage', 2)
+                                # laser精灵旋转90°后的光柱半宽
+                                _spr = {}
+                                _all_spr = {**getattr(player, 'sprites', {}), **getattr(player, 'bullet_sprites', {})}
+                                _spr = _all_spr.get(laser_data.get('sprite', ''), {})
+                                _rect = _spr.get('rect', [0, 0, 6, 12])
+                                beam_hw = _rect[3] / 192.0 / 2.0
+
+                                for target in collision_targets:
+                                    alive_f = getattr(target, '_active', getattr(target, 'alive', True))
+                                    if not alive_f:
+                                        continue
+                                    t_pos = getattr(target, 'pos', None)
+                                    if t_pos is not None:
+                                        tx, ty = float(t_pos[0]), float(t_pos[1])
+                                    elif hasattr(target, 'x') and hasattr(target, 'y'):
+                                        tx, ty = float(target.x), float(target.y)
+                                    else:
+                                        continue
+                                    hit_r = getattr(target, 'hitbox_radius', getattr(target, 'hit_radius', 0.05))
+                                    if abs(tx - lx) < beam_hw + hit_r and ty > ly:
+                                        target.damage(int(laser_dmg))
+                                        item_pool.stats.score += 10
 
                     # === Graze detection ===
                     graze_count = collision_mgr.check_player_graze(

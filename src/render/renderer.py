@@ -425,8 +425,9 @@ class Renderer:
             elif items:
                 item_renderer.render_items(items)
 
-        # ===== 层级 3: 自机子弹 =====
+        # ===== 层级 3: 自机子弹 + 自机激光 =====
         self._render_player_bullets(player)
+        self._render_player_lasers(player)
 
         # ===== 层级 4-5: Options、自机本体 =====
         self._render_player(player)
@@ -835,6 +836,88 @@ class Renderer:
         if 'u_alpha' in self.player_tex_program:
             self.player_tex_program['u_alpha'].value = 1.0
     
+    def _render_player_lasers(self, player):
+        """
+        渲染玩家激光（连续光柱，从玩家位置延伸到屏幕顶部）
+        激光精灵旋转90°后拉伸为竖直光柱
+        """
+        import os
+        from PIL import Image
+
+        lasers = getattr(player, 'player_lasers', None)
+        if not lasers:
+            return
+
+        # 确保子弹纹理已加载（激光精灵在子弹纹理上）
+        bullet_tex_path = getattr(player, 'bullet_texture_path', '') or ''
+        if bullet_tex_path and self.player_bullet_texture is None:
+            if os.path.exists(bullet_tex_path):
+                img = Image.open(bullet_tex_path).convert('RGBA')
+                self.player_bullet_texture = self.ctx.texture(img.size, 4, img.tobytes())
+                self.player_bullet_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
+                self.player_bullet_texture_size = img.size
+
+        bullet_sprites = getattr(player, 'bullet_sprites', {}) or {}
+        all_sprites = {**getattr(player, 'sprites', {}), **bullet_sprites}
+
+        for laser in lasers:
+            sprite_name = laser.get('sprite', 'laser1')
+            spr_data = all_sprites.get(sprite_name)
+            if not spr_data:
+                continue
+
+            rect = spr_data.get('rect', [0, 0, 6, 12])
+            source = spr_data.get('source', 'bullet')
+
+            # 选择纹理
+            if source == 'bullet' and self.player_bullet_texture:
+                use_tex = self.player_bullet_texture
+                use_size = self.player_bullet_texture_size
+            elif self.player_texture:
+                use_tex = self.player_texture
+                use_size = self.player_texture_size
+            else:
+                continue
+
+            tw, th = use_size
+
+            # 精灵 UV — 加半像素内缩防止 NEAREST 采样到相邻精灵
+            u0 = (rect[0] + 0.5) / tw
+            v0 = (rect[1] + 0.5) / th
+            u1 = (rect[0] + rect[2] - 0.5) / tw
+            v1 = (rect[1] + rect[3] - 0.5) / th
+
+            lx = laser['x']
+            y_start = laser['y']
+            y_end = 1.3  # 屏幕顶部以外
+
+            # 旋转90°后：原始 height(rect[3]) 变为光柱宽度
+            beam_half_w = rect[3] / 192.0 / 2.0
+
+            # 90° 顺时针旋转 UV 映射：
+            # 屏幕左下(BL) → 原始右下 (u1, v1)
+            # 屏幕右下(BR) → 原始右上 (u1, v0)
+            # 屏幕右上(TR) → 原始左上 (u0, v0)
+            # 屏幕左上(TL) → 原始左下 (u0, v1)
+            vertices = np.array([
+                lx - beam_half_w, y_start, u1, v1,  # BL
+                lx + beam_half_w, y_start, u1, v0,  # BR
+                lx + beam_half_w, y_end,   u0, v0,  # TR
+                lx - beam_half_w, y_start, u1, v1,  # BL
+                lx + beam_half_w, y_end,   u0, v0,  # TR
+                lx - beam_half_w, y_end,   u0, v1,  # TL
+            ], dtype='f4')
+
+            use_tex.use(0)
+            if 'u_alpha' in self.player_tex_program:
+                self.player_tex_program['u_alpha'].value = 0.7
+            self.player_tex_vbo.write(vertices.tobytes())
+            self.player_tex_vao.render(moderngl.TRIANGLES)
+
+        # 渲染完激光后恢复 alpha，避免影响后续自机/Options渲染
+        if 'u_alpha' in self.player_tex_program:
+            self.player_tex_program['u_alpha'].value = 1.0
+
     def _render_player_bullets(self, player):
         """渲染玩家子弹（使用独立的子弹纹理或共用自机纹理）"""
         import os
