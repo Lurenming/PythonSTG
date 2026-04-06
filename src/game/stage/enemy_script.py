@@ -245,6 +245,40 @@ class EnemyScript(ABC):
             b = self.fire(angle=angle, speed=speed, **kwargs)
             bullets.append(b)
         return bullets
+
+    def fire_polar(self, orbit_radius: float, theta: float,
+                   radial_speed: float = 0.0, angular_velocity: float = 0.0,
+                   bullet_type: str = "ball_m", color: str = "red",
+                   center=None, render_mode: str = "velocity",
+                   angle_offset: float = 0.0, collision_radius: float = 0.0,
+                   **kwargs):
+        """
+        发射极坐标运动子弹。
+
+        默认围绕当前敌人位置运动；角度单位为“度”。
+        """
+        if center is None:
+            center = self
+
+        bullet = self.ctx.create_polar_bullet(
+            center=center,
+            orbit_radius=orbit_radius,
+            theta=theta,
+            radial_speed=radial_speed,
+            angular_velocity=angular_velocity,
+            bullet_type=bullet_type,
+            color=color,
+            render_mode=render_mode,
+            angle_offset=angle_offset,
+            collision_radius=collision_radius,
+            **kwargs
+        )
+        self._bullets.append(bullet)
+        return bullet
+
+    def fire_orbit(self, *args, **kwargs):
+        """`fire_polar` 的语义化别名。"""
+        return self.fire_polar(*args, **kwargs)
     
     def fire_arc(self, count: int = 5, speed: float = 2.0,
                  center_angle: float = -90, arc_angle: float = 60, **kwargs):

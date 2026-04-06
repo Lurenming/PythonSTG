@@ -465,6 +465,36 @@ self.fire(
 - `self.fire_circle(...)`
 - `self.fire_arc(...)`
 - `self.fire_at_player(...)`
+- `self.fire_polar(...)`
+- `self.fire_orbit(...)`
+
+### 极坐标运动子弹
+
+当前已经支持“相对于某个中心按极坐标运动”的子弹：
+
+```python
+self.fire_polar(
+    orbit_radius=0.10,        # 初始半径
+    theta=0,                  # 初始角度（度）
+    radial_speed=0.10,        # 半径每秒增加
+    angular_velocity=180,     # 每秒旋转 180 度
+    bullet_type="ball_s",
+    color="blue",
+)
+```
+
+在 `SpellCard` 中默认围绕 `self.boss`。  
+在 `EnemyScript` 中默认围绕 `self`。  
+在 `Wave` 中请显式传 `center=(x, y)` 或其他中心对象。
+
+可选参数：
+
+- `render_mode="velocity"`：贴图朝向跟随实际运动方向
+- `render_mode="radial"`：贴图朝向始终从中心向外
+- `render_mode="inward"`：贴图朝向始终指向中心
+- `render_mode="fixed"`：固定角度，配合 `angle_offset`
+- `angle_offset`：贴图角度偏移（度）
+- `collision_radius`：碰撞半径
 
 ### 坐标和角度
 

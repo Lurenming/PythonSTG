@@ -160,6 +160,56 @@ class StageContext(SpellCardContext):
         if idx >= 0:
             self._bullet_indices.append(idx)
         return idx
+
+    def create_polar_bullet(self, center, orbit_radius: float, theta: float,
+                            radial_speed: float = 0.0, angular_velocity: float = 0.0,
+                            bullet_type: str = "ball_m", color: str = "red",
+                            render_mode: str = "velocity", angle_offset: float = 0.0,
+                            collision_radius: float = 0.0, owner=None, **kwargs) -> int:
+        """
+        创建极坐标运动子弹。
+
+        运动模型：
+            pos = center + polar(radius, theta)
+            radius += radial_speed * dt
+            theta += angular_velocity * dt
+
+        参数中的角度单位全部为“度”。
+
+        Args:
+            center: 运动中心。可为 (x, y) / 拥有 x,y 的对象 / callable
+            orbit_radius: 初始半径
+            theta: 初始角度（度）
+            radial_speed: 半径线性变化速度
+            angular_velocity: 角速度（度/秒）
+            render_mode: velocity / radial / inward / fixed
+            angle_offset: 贴图朝向偏移（度）
+            collision_radius: 碰撞半径
+        """
+        sprite_id = self._resolve_sprite_id(bullet_type, color)
+
+        if not hasattr(self.bullet_pool, 'spawn_polar_bullet'):
+            raise RuntimeError("Current bullet pool does not support polar bullets")
+
+        idx = self.bullet_pool.spawn_polar_bullet(
+            center=center,
+            orbit_radius=orbit_radius,
+            theta=math.radians(theta),
+            radial_speed=radial_speed,
+            angular_velocity=math.radians(angular_velocity),
+            sprite_id=sprite_id,
+            render_mode=render_mode,
+            angle_offset=math.radians(angle_offset),
+            hit_radius=collision_radius,
+            **kwargs,
+        )
+        if idx >= 0:
+            self._bullet_indices.append(idx)
+        return idx
+
+    def create_orbit_bullet(self, *args, **kwargs) -> int:
+        """`create_polar_bullet` 的语义化别名。"""
+        return self.create_polar_bullet(*args, **kwargs)
     
     def remove_bullet(self, bullet_idx: int):
         """移除子弹"""

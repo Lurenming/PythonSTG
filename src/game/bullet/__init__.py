@@ -11,7 +11,9 @@ from .optimized_pool import OptimizedBulletPool
 
 class SpawnRequest:
     """生成请求"""
-    def __init__(self, x, y, angle, speed, color=None, sprite_id='', init=None, delay=0, acc=None, on_death=None, max_lifetime=0.0, modifiers=None):
+    def __init__(self, x, y, angle, speed, color=None, sprite_id='', init=None,
+                 delay=0, acc=None, on_death=None, max_lifetime=0.0,
+                 modifiers=None, radius=0.0):
         self.x = x
         self.y = y
         self.angle = angle
@@ -24,6 +26,7 @@ class SpawnRequest:
         self.on_death = on_death  # 死亡回调
         self.max_lifetime = max_lifetime  # 最大生命周期（秒）
         self.modifiers = modifiers or []  # modifier列表
+        self.radius = radius  # 碰撞半径
 
 class DeathEvent:
     """死亡事件"""
@@ -81,6 +84,19 @@ class AngleAccelerationModifier(Modifier):
         bullet_data['vel'][idx][0] = speed * math.cos(bullet_data['angle'][idx])
         bullet_data['vel'][idx][1] = speed * math.sin(bullet_data['angle'][idx])
 
+
+class PolarMotion:
+    """极坐标运动描述：bullet position = center + polar(radius, theta)."""
+    def __init__(self, center, orbit_radius, theta, radial_speed=0.0,
+                 angular_velocity=0.0, render_mode='velocity', angle_offset=0.0):
+        self.center = center
+        self.radius = orbit_radius
+        self.theta = theta
+        self.radial_speed = radial_speed
+        self.angular_velocity = angular_velocity
+        self.render_mode = render_mode
+        self.angle_offset = angle_offset
+
 class BulletPool:
     def __init__(self, max_bullets=50000):
         """
@@ -122,6 +138,9 @@ class BulletPool:
         
         # 空闲子弹索引列表，优化spawn_bullet性能
         self.free_indices = list(range(max_bullets))
+
+        # 运行时动态运动：索引 -> PolarMotion
+        self.polar_motions = {}
     
     def spawn_bullet(self, x, y, angle, speed, color=None, sprite_id='', init=None, delay=0, on_death=None, max_lifetime=0.0, modifiers=None, radius=0.0, acc=None):
         """
@@ -145,7 +164,10 @@ class BulletPool:
         
         # 如果有延迟，添加到生成队列
         if delay > 0:
-            self.spawn_queue.append(SpawnRequest(x, y, angle, speed, color, sprite_id, init, delay, acc, on_death, max_lifetime, modifiers))
+            self.spawn_queue.append(SpawnRequest(
+                x, y, angle, speed, color, sprite_id, init, delay,
+                acc, on_death, max_lifetime, modifiers, radius
+            ))
             return -1
         
         # 从空闲列表中获取空闲子弹索引
@@ -258,6 +280,7 @@ class BulletPool:
         if 0 <= idx < self.max_bullets and self.data['alive'][idx]:
             # 标记为非活跃
             self.data['alive'][idx] = 0
+            self.polar_motions.pop(int(idx), None)
             
             # 获取死亡处理函数
             if handler is None:
@@ -280,6 +303,9 @@ class BulletPool:
         
         # 调用Numba加速的更新函数
         _update_bullets(self.data, dt)
+
+        # Python 层的特殊运动（例如围绕中心的极坐标运动）
+        self._update_polar_motions(dt)
         
         # 收集死亡事件
         self._collect_deaths()
@@ -304,6 +330,7 @@ class BulletPool:
             # 从字典中移除
             if idx in self.death_handlers:
                 del self.death_handlers[idx]
+            self.polar_motions.pop(int(idx), None)
             self.death_queue.append(DeathEvent(idx, x, y, handler))
             # 将死亡的子弹索引添加回空闲列表
             self.free_indices.append(idx)
@@ -402,10 +429,145 @@ class BulletPool:
         self.data['alive'] = 0
         self.spawn_queue.clear()
         self.death_queue.clear()
+        self.polar_motions.clear()
     
     def pre_update(self, dt):
         """以后加上子弹的其他处理"""
         pass
+
+    # ===== 极坐标运动 API =====
+
+    def _resolve_motion_center(self, center):
+        """解析极坐标运动的中心。支持对象、tuple/list、callable。"""
+        if callable(center):
+            center = center()
+
+        if hasattr(center, 'x') and hasattr(center, 'y'):
+            return float(center.x), float(center.y)
+
+        if hasattr(center, 'pos'):
+            return float(center.pos[0]), float(center.pos[1])
+
+        if isinstance(center, (tuple, list)) and len(center) >= 2:
+            return float(center[0]), float(center[1])
+
+        raise ValueError(f"Unsupported polar center: {center!r}")
+
+    def _apply_polar_motion(self, idx, motion, dt=None, old_pos=None):
+        """根据 PolarMotion 更新当前子弹的坐标和朝向。"""
+        cx, cy = self._resolve_motion_center(motion.center)
+        x = cx + math.cos(motion.theta) * motion.radius
+        y = cy + math.sin(motion.theta) * motion.radius
+        self.data['pos'][idx] = (x, y)
+
+        if dt is not None and dt > 1e-8 and old_pos is not None:
+            vx = (x - old_pos[0]) / dt
+            vy = (y - old_pos[1]) / dt
+        else:
+            vx = math.cos(motion.theta) * motion.radial_speed - math.sin(motion.theta) * motion.radius * motion.angular_velocity
+            vy = math.sin(motion.theta) * motion.radial_speed + math.cos(motion.theta) * motion.radius * motion.angular_velocity
+
+        self.data['vel'][idx] = (vx, vy)
+        speed = math.sqrt(vx * vx + vy * vy)
+        self.data['speed'][idx] = speed
+
+        if motion.render_mode == 'radial':
+            angle = math.atan2(y - cy, x - cx) + motion.angle_offset
+        elif motion.render_mode == 'inward':
+            angle = math.atan2(cy - y, cx - x) + motion.angle_offset
+        elif motion.render_mode == 'fixed':
+            angle = motion.angle_offset
+        else:
+            # 默认按实际运动方向朝向
+            angle = math.atan2(vy, vx) if speed > 1e-8 else self.data['angle'][idx]
+
+        self.data['angle'][idx] = angle
+
+    def attach_polar_motion(self, idx, center, orbit_radius, theta,
+                            radial_speed=0.0, angular_velocity=0.0,
+                            render_mode='velocity', angle_offset=0.0):
+        """为已生成的子弹附加极坐标运动。角度单位为弧度。"""
+        motion = PolarMotion(
+            center=center,
+            orbit_radius=orbit_radius,
+            theta=theta,
+            radial_speed=radial_speed,
+            angular_velocity=angular_velocity,
+            render_mode=render_mode,
+            angle_offset=angle_offset,
+        )
+        self.polar_motions[int(idx)] = motion
+        self.data['acc'][idx] = (0.0, 0.0)
+        self._apply_polar_motion(int(idx), motion)
+
+    def spawn_polar_bullet(self, center, orbit_radius, theta,
+                           radial_speed=0.0, angular_velocity=0.0,
+                           color=None, sprite_id='', init=None, delay=0,
+                           on_death=None, max_lifetime=0.0,
+                           hit_radius=0.0, render_mode='velocity',
+                           angle_offset=0.0):
+        """
+        生成围绕某中心按极坐标运动的子弹。
+
+        参数说明：
+        - center: 运动中心；可为 (x, y) / 拥有 x,y 的对象 / callable
+        - orbit_radius: 初始半径
+        - theta: 初始角度（弧度）
+        - radial_speed: 半径线性变化速度
+        - angular_velocity: 角度线性变化速度（弧度/秒）
+        - render_mode: velocity / radial / inward / fixed
+        - angle_offset: 贴图角度偏移（弧度）
+        """
+        cx, cy = self._resolve_motion_center(center)
+        x = cx + math.cos(theta) * orbit_radius
+        y = cy + math.sin(theta) * orbit_radius
+
+        def _init(pool, idx):
+            pool.attach_polar_motion(
+                idx, center=center, orbit_radius=orbit_radius, theta=theta,
+                radial_speed=radial_speed, angular_velocity=angular_velocity,
+                render_mode=render_mode, angle_offset=angle_offset
+            )
+            if init:
+                init(pool, idx)
+
+        return self.spawn_bullet(
+            x=x, y=y,
+            angle=theta,
+            speed=0.0,
+            color=color,
+            sprite_id=sprite_id,
+            init=_init,
+            delay=delay,
+            on_death=on_death,
+            max_lifetime=max_lifetime,
+            radius=hit_radius,
+            acc=(0.0, 0.0),
+        )
+
+    def _update_polar_motions(self, dt):
+        """更新所有极坐标运动子弹。"""
+        if not self.polar_motions:
+            return
+
+        to_remove = []
+        for idx, motion in list(self.polar_motions.items()):
+            if idx < 0 or idx >= self.max_bullets or self.data['alive'][idx] == 0:
+                to_remove.append(idx)
+                continue
+
+            old_pos = (float(self.data['pos'][idx][0]), float(self.data['pos'][idx][1]))
+            motion.theta += motion.angular_velocity * dt
+            motion.radius += motion.radial_speed * dt
+            self._apply_polar_motion(idx, motion, dt=dt, old_pos=old_pos)
+
+            x, y = self.data['pos'][idx]
+            if x < -1.5 or x > 1.5 or y < -1.5 or y > 1.5:
+                self.data['alive'][idx] = 0
+                to_remove.append(idx)
+
+        for idx in to_remove:
+            self.polar_motions.pop(int(idx), None)
 
 @njit
 def _update_bullets(data, dt):

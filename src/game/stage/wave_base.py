@@ -129,6 +129,37 @@ class Wave(ABC):
             b = self.fire(x=x, y=y, angle=angle, speed=speed, **kwargs)
             bullets.append(b)
         return bullets
+
+    def fire_polar(self, center, orbit_radius: float, theta: float,
+                   radial_speed: float = 0.0, angular_velocity: float = 0.0,
+                   bullet_type: str = "ball_m", color: str = "red",
+                   render_mode: str = "velocity", angle_offset: float = 0.0,
+                   collision_radius: float = 0.0, **kwargs):
+        """
+        发射极坐标运动子弹。
+
+        Args:
+            center: (x, y) / 拥有 x,y 的对象 / callable
+            orbit_radius: 初始半径
+            theta: 初始角度（度）
+        """
+        return self.ctx.create_polar_bullet(
+            center=center,
+            orbit_radius=orbit_radius,
+            theta=theta,
+            radial_speed=radial_speed,
+            angular_velocity=angular_velocity,
+            bullet_type=bullet_type,
+            color=color,
+            render_mode=render_mode,
+            angle_offset=angle_offset,
+            collision_radius=collision_radius,
+            **kwargs
+        )
+
+    def fire_orbit(self, *args, **kwargs):
+        """`fire_polar` 的语义化别名。"""
+        return self.fire_polar(*args, **kwargs)
     
     def fire_at_player(self, x: float, y: float, speed: float = 2.0,
                        offset_angle: float = 0, **kwargs):
