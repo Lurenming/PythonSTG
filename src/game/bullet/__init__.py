@@ -467,7 +467,6 @@ class BulletPool:
             vx = math.cos(motion.theta) * motion.radial_speed - math.sin(motion.theta) * motion.radius * motion.angular_velocity
             vy = math.sin(motion.theta) * motion.radial_speed + math.cos(motion.theta) * motion.radius * motion.angular_velocity
 
-        self.data['vel'][idx] = (vx, vy)
         speed = math.sqrt(vx * vx + vy * vy)
         self.data['speed'][idx] = speed
 
@@ -482,6 +481,9 @@ class BulletPool:
             angle = math.atan2(vy, vx) if speed > 1e-8 else self.data['angle'][idx]
 
         self.data['angle'][idx] = angle
+        # Polar bullets are positioned explicitly here, so we must keep the
+        # base kinematic step from integrating the derived velocity again.
+        self.data['vel'][idx] = (0.0, 0.0)
 
     def attach_polar_motion(self, idx, center, orbit_radius, theta,
                             radial_speed=0.0, angular_velocity=0.0,

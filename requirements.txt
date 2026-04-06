@@ -1,8 +1,12 @@
-glfw
-imgui[glfw]
-Pillow
-miniaudio
-freetype-py
-moderngl
-numpy
-numba
+# Known-good runtime versions from the `touhou_guess` conda env
+# Python: 3.12.9
+glfw==2.10.0
+imgui[glfw]==2.0.0
+Pillow==12.1.0
+miniaudio==1.61
+freetype-py==2.5.1
+moderngl==5.12.0
+
+# Keep this pair pinned together. We already saw mismatches break imports.
+numpy==2.2.4
+numba==0.63.1
