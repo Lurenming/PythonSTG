@@ -6,6 +6,14 @@
 2. 预计算并缓存渲染数据（UV、尺寸）
 3. 使用向量化操作准备批量渲染数据
 4. 支持按纹理/大小分组的高效渲染
+
+v2 扩展字段:
+- render_angle / angular_vel: 渲染朝向与运动方向解耦，支持自转
+- friction: 摩擦 / 阻尼系数
+- tag: 分组标签（用于按组消弹等）
+- time_scale: 每子弹时间缩放（时停 / 慢动作）
+- flags: 位标志（反弹、发射器、render_angle 锁定等）
+- curve_type / curve_param: 内置数学曲线（sin/cos/linear 速度/角度调制）
 """
 
 import numpy as np
@@ -23,6 +31,22 @@ from src.core.sprite_registry import SpriteRegistry, get_sprite_registry
 from src.core.config import get_config
 
 
+# ============= Flags 位常量 =============
+
+FLAG_BOUNCE_X            = 0x0001  # 碰到左右边界反弹
+FLAG_BOUNCE_Y            = 0x0002  # 碰到上下边界反弹
+FLAG_IS_EMITTER          = 0x0004  # 发射器节点（不渲染、不碰撞）
+FLAG_RENDER_ANGLE_LOCKED = 0x0008  # render_angle 锁定跟随运动角（默认开启）
+
+# ============= Curve 类型常量 =============
+
+CURVE_NONE         = 0
+CURVE_SIN_SPEED    = 1  # speed = base + amp * sin(freq * t + phase)
+CURVE_SIN_ANGLE    = 2  # angle += amp * sin(freq * t + phase) * dt
+CURVE_COS_SPEED    = 3  # speed = base + amp * cos(freq * t + phase)
+CURVE_LINEAR_SPEED = 4  # speed = base + amp * t
+
+
 @dataclass
 class SpawnRequest:
     """生成请求"""
@@ -37,6 +61,15 @@ class SpawnRequest:
     radius: float = 0.0
     init: Optional[Callable] = None
     on_death: Optional[Callable] = None
+    # v2 扩展
+    friction: float = 0.0
+    tag: int = 0
+    time_scale: float = 1.0
+    flags: int = FLAG_RENDER_ANGLE_LOCKED  # 默认锁定
+    angular_vel: float = 0.0
+    render_angle: float = 0.0
+    curve_type: int = 0
+    curve_param: Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
 
 
 @dataclass
@@ -62,92 +95,84 @@ class PolarMotion:
 
 class OptimizedBulletPool:
     """
-    优化版子弹池
-    
-    相比原版的主要改进:
-    - sprite_idx 使用 uint16（2字节 vs 原来的128字节字符串）
-    - 渲染数据使用向量化操作批量准备
-    - 支持按纹理/大小分类高效分组
-    
-    兼容性:
-    - 提供与原BulletPool相同的接口
-    - 可以通过sprite_id字符串spawn（内部转换为索引）
+    优化版子弹池 (v2)
+
+    v2 新增能力:
+    - render_angle 与运动角解耦、自转 (angular_vel)
+    - 摩擦力 / 阻尼 (friction)
+    - 分组标签 (tag) + clear_by_tag / set_time_scale_by_tag
+    - 时间缩放 (time_scale) — 每子弹独立
+    - 边界反弹 (flags & BOUNCE_X/Y)
+    - 发射器节点 (flags & IS_EMITTER) — 不渲染不碰撞但可挂回调
+    - 内置数学曲线 (curve_type + curve_param)
     """
-    
+
     def __init__(self, max_bullets: int = 50000, sprite_registry: SpriteRegistry = None):
-        """
-        初始化子弹池
-        
-        Args:
-            max_bullets: 最大子弹数量
-            sprite_registry: 精灵注册表（为None则使用全局实例）
-        """
         self.max_bullets = max_bullets
         self.sprite_registry = sprite_registry or get_sprite_registry()
-        
-        # 优化后的数据结构 - sprite_idx使用uint16
-        self.dtype = np.dtype([
-            ('pos', 'f4', 2),        # 位置 (x, y)
-            ('vel', 'f4', 2),        # 速度 (vx, vy)
-            ('acc', 'f4', 2),        # 加速度 (ax, ay)
-            ('angle', 'f4'),         # 角度（弧度）
-            ('speed', 'f4'),         # 速度大小
-            ('alive', 'i4'),         # 活跃状态
-            ('sprite_idx', 'u2'),    # 精灵索引（优化：2字节 vs 原128字节）
-            ('radius', 'f4'),        # 碰撞半径
-            ('lifetime', 'f4'),      # 生命周期
-            ('max_lifetime', 'f4'),  # 最大生命周期
-        ])
-        
-        # 初始化数据数组
-        self.data = np.zeros(max_bullets, dtype=self.dtype)
-        
-        # 空闲索引列表
-        self.free_indices = list(range(max_bullets))
-        
-        # 死亡处理器
-        self.death_handlers: Dict[int, Callable] = {}
 
-        # 动态极坐标运动
+        # v2 数据结构
+        self.dtype = np.dtype([
+            ('pos', 'f4', 2),           # 位置 (x, y)
+            ('vel', 'f4', 2),           # 速度 (vx, vy)
+            ('acc', 'f4', 2),           # 加速度 (ax, ay)
+            ('angle', 'f4'),            # 运动方向角（弧度，由 vel 重算）
+            ('render_angle', 'f4'),     # 渲染朝向角（可自转）
+            ('angular_vel', 'f4'),      # render_angle 的角速度（弧度/秒）
+            ('speed', 'f4'),            # 标量速度
+            ('alive', 'i4'),            # 存活标记
+            ('sprite_idx', 'u2'),       # 精灵索引
+            ('flags', 'u2'),            # 位标志 (bounce, emitter, render_angle_locked, ...)
+            ('radius', 'f4'),           # 碰撞半径
+            ('lifetime', 'f4'),         # 已存活秒数
+            ('max_lifetime', 'f4'),     # ≤0 无限存活
+            ('friction', 'f4'),         # 摩擦/阻尼系数
+            ('tag', 'i4'),              # 分组标签
+            ('time_scale', 'f4'),       # 时间缩放 (1.0=正常)
+            ('curve_type', 'u1'),       # 内置曲线类型
+            ('curve_param', 'f4', 4),   # 曲线参数 [amp, freq, phase, base]
+        ])
+
+        self.data = np.zeros(max_bullets, dtype=self.dtype)
+        # 默认值
+        self.data['time_scale'] = 1.0
+        self.data['flags'] = FLAG_RENDER_ANGLE_LOCKED
+
+        self.free_indices = list(range(max_bullets))
+
+        # Python 层回调
+        self.death_handlers: Dict[int, Callable] = {}
         self.polar_motions: Dict[int, PolarMotion] = {}
-        
-        # 生成队列和死亡队列
+        self.emitter_callbacks: Dict[int, Callable] = {}
+
         self.spawn_queue: List[SpawnRequest] = []
         self.death_queue: List[DeathEvent] = []
-        
-        # 上一帧活跃状态
         self.last_alive = np.zeros(max_bullets, dtype='i4')
-        
+
         # ===== 渲染优化相关 =====
-        # 预分配渲染数据缓冲区
         self._render_positions = np.zeros((max_bullets, 2), dtype='f4')
         self._render_angles = np.zeros(max_bullets, dtype='f4')
         self._render_uvs = np.zeros((max_bullets, 4), dtype='f4')
         self._render_scales = np.zeros((max_bullets, 2), dtype='f4')
         self._render_tex_indices = np.zeros(max_bullets, dtype='u2')
         self._render_categories = np.zeros(max_bullets, dtype='u1')
-        
-        # 缓存配置
+
         config = get_config()
         self._scale_factor = config.pixel_to_ndc_scale
-        
-        # 兼容旧接口的sprite_id映射
+
         self._sprite_id_to_idx: Dict[str, int] = {}
-    
+
+    # ===== 精灵注册 =====
+
     def register_sprite(self, sprite_id: str) -> int:
-        """
-        注册精灵ID（兼容旧接口）
-        
-        实际的精灵数据应通过sprite_registry注册
-        这里只建立ID到索引的映射缓存
-        """
         if sprite_id in self._sprite_id_to_idx:
             return self._sprite_id_to_idx[sprite_id]
-        
         idx = self.sprite_registry.get_index(sprite_id)
         self._sprite_id_to_idx[sprite_id] = idx
         return idx
-    
+
+    # ===== 生成 =====
+
     def spawn_bullet(
         self,
         x: float,
@@ -162,79 +187,95 @@ class OptimizedBulletPool:
         radius: float = 0.0,
         init: Callable = None,
         on_death: Callable = None,
-        **kwargs  # 忽略不支持的参数
+        # v2 扩展参数
+        friction: float = 0.0,
+        tag: int = 0,
+        time_scale: float = 1.0,
+        flags: int = FLAG_RENDER_ANGLE_LOCKED,
+        angular_vel: float = 0.0,
+        render_angle: float = None,
+        curve_type: int = 0,
+        curve_param: Tuple[float, float, float, float] = None,
+        **kwargs  # 忽略未知参数
     ) -> int:
         """
         生成子弹
-        
-        Args:
-            x, y: 初始位置
-            angle: 角度（弧度）
-            speed: 速度
-            sprite_id: 精灵ID字符串（兼容旧接口）
-            sprite_idx: 精灵索引（优先使用）
-            delay: 延迟帧数
-            acc: 加速度 (ax, ay)
-            max_lifetime: 最大生命周期
-            radius: 碰撞半径
-            init: 初始化回调
-            on_death: 死亡回调
-            
-        Returns:
-            子弹索引，-1表示失败
+
+        v2 新增 Args:
+            friction: 摩擦/阻尼系数
+            tag: 分组标签
+            time_scale: 时间缩放
+            flags: 位标志 (FLAG_BOUNCE_X, FLAG_BOUNCE_Y, FLAG_IS_EMITTER, FLAG_RENDER_ANGLE_LOCKED)
+            angular_vel: render_angle 角速度（弧度/秒）
+            render_angle: 初始渲染朝向（None = 跟随 angle）
+            curve_type: 内置曲线类型
+            curve_param: 曲线参数 (amp, freq, phase, base)
         """
         acc = acc or (0.0, 0.0)
-        
-        # 获取精灵索引
+        curve_param = curve_param or (0.0, 0.0, 0.0, 0.0)
+        if render_angle is None:
+            render_angle = angle
+
         if sprite_idx < 0:
-            if sprite_id:
-                sprite_idx = self.register_sprite(sprite_id)
-            else:
-                sprite_idx = 0  # 默认精灵
-        
-        # 处理延迟
+            sprite_idx = self.register_sprite(sprite_id) if sprite_id else 0
+
         if delay > 0:
             self.spawn_queue.append(SpawnRequest(
                 x=x, y=y, angle=angle, speed=speed,
                 sprite_idx=sprite_idx, delay=delay, acc=acc,
                 max_lifetime=max_lifetime, radius=radius,
-                init=init, on_death=on_death
+                init=init, on_death=on_death,
+                friction=friction, tag=tag, time_scale=time_scale,
+                flags=flags, angular_vel=angular_vel, render_angle=render_angle,
+                curve_type=curve_type, curve_param=curve_param,
             ))
             return -1
-        
-        # 获取空闲索引
+
         if not self.free_indices:
             return -1
-        
+
         idx = self.free_indices.pop()
-        
-        # 设置数据
-        vx = math.cos(angle) * speed
-        vy = math.sin(angle) * speed
-        
-        self.data['pos'][idx] = (x, y)
-        self.data['vel'][idx] = (vx, vy)
-        self.data['acc'][idx] = acc
-        self.data['angle'][idx] = angle
-        self.data['speed'][idx] = speed
-        self.data['sprite_idx'][idx] = sprite_idx
-        self.data['radius'][idx] = radius
-        self.data['lifetime'][idx] = 0.0
-        self.data['max_lifetime'][idx] = max_lifetime
-        self.data['alive'][idx] = 1
-        
-        # 死亡处理器
+        self._write_bullet(idx, x, y, angle, speed, acc, sprite_idx, radius,
+                           max_lifetime, friction, tag, time_scale, flags,
+                           angular_vel, render_angle, curve_type, curve_param)
+
         if on_death:
             self.death_handlers[idx] = on_death
         elif idx in self.death_handlers:
             del self.death_handlers[idx]
-        
-        # 初始化回调
+
         if init:
             init(self, idx)
-        
+
         return idx
-    
+
+    def _write_bullet(self, idx, x, y, angle, speed, acc, sprite_idx, radius,
+                      max_lifetime, friction, tag, time_scale, flags,
+                      angular_vel, render_angle, curve_type, curve_param):
+        """写入子弹数据到指定 slot"""
+        vx = math.cos(angle) * speed
+        vy = math.sin(angle) * speed
+
+        d = self.data
+        d['pos'][idx] = (x, y)
+        d['vel'][idx] = (vx, vy)
+        d['acc'][idx] = acc
+        d['angle'][idx] = angle
+        d['render_angle'][idx] = render_angle
+        d['angular_vel'][idx] = angular_vel
+        d['speed'][idx] = speed
+        d['sprite_idx'][idx] = sprite_idx
+        d['radius'][idx] = radius
+        d['lifetime'][idx] = 0.0
+        d['max_lifetime'][idx] = max_lifetime
+        d['friction'][idx] = friction
+        d['tag'][idx] = tag
+        d['time_scale'][idx] = time_scale
+        d['flags'][idx] = flags
+        d['curve_type'][idx] = curve_type
+        d['curve_param'][idx] = curve_param
+        d['alive'][idx] = 1
+
     def spawn_pattern(
         self,
         x: float,
@@ -249,111 +290,157 @@ class OptimizedBulletPool:
         radius: float = 0.0,
         acc: Tuple[float, float] = None,
         on_death: Callable = None,
+        # v2
+        friction: float = 0.0,
+        tag: int = 0,
+        time_scale: float = 1.0,
+        flags: int = FLAG_RENDER_ANGLE_LOCKED,
     ):
-        """
-        批量生成圆形扩散子弹（向量化优化）
-        """
+        """批量生成圆形扩散子弹（向量化优化）"""
         if count <= 0:
             return
-        
+
         acc = acc or (0.0, 0.0)
-        
-        # 获取精灵索引
         if sprite_idx < 0:
             sprite_idx = self.register_sprite(sprite_id) if sprite_id else 0
-        
-        # 计算角度数组
+
         angle_step = angle_spread / count
         angles = np.array([angle + i * angle_step for i in range(count)], dtype='f4')
-        
-        # 计算速度向量
         vxs = np.cos(angles) * speed
         vys = np.sin(angles) * speed
-        
-        # 获取空闲索引
+
         available = min(count, len(self.free_indices))
         if available == 0:
             return
-        
+
         use_indices = []
         for _ in range(available):
             use_indices.append(self.free_indices.pop())
         use_indices = np.array(use_indices, dtype='i4')
         n = len(use_indices)
-        
-        # 批量写入（向量化）
-        self.data['pos'][use_indices, 0] = x
-        self.data['pos'][use_indices, 1] = y
-        self.data['vel'][use_indices, 0] = vxs[:n]
-        self.data['vel'][use_indices, 1] = vys[:n]
-        self.data['acc'][use_indices, 0] = acc[0]
-        self.data['acc'][use_indices, 1] = acc[1]
-        self.data['angle'][use_indices] = angles[:n]
-        self.data['speed'][use_indices] = speed
-        self.data['sprite_idx'][use_indices] = sprite_idx
-        self.data['radius'][use_indices] = radius
-        self.data['lifetime'][use_indices] = 0.0
-        self.data['max_lifetime'][use_indices] = max_lifetime
-        self.data['alive'][use_indices] = 1
-        
-        # 死亡处理器
+
+        d = self.data
+        d['pos'][use_indices, 0] = x
+        d['pos'][use_indices, 1] = y
+        d['vel'][use_indices, 0] = vxs[:n]
+        d['vel'][use_indices, 1] = vys[:n]
+        d['acc'][use_indices, 0] = acc[0]
+        d['acc'][use_indices, 1] = acc[1]
+        d['angle'][use_indices] = angles[:n]
+        d['render_angle'][use_indices] = angles[:n]
+        d['angular_vel'][use_indices] = 0.0
+        d['speed'][use_indices] = speed
+        d['sprite_idx'][use_indices] = sprite_idx
+        d['radius'][use_indices] = radius
+        d['lifetime'][use_indices] = 0.0
+        d['max_lifetime'][use_indices] = max_lifetime
+        d['friction'][use_indices] = friction
+        d['tag'][use_indices] = tag
+        d['time_scale'][use_indices] = time_scale
+        d['flags'][use_indices] = flags
+        d['curve_type'][use_indices] = CURVE_NONE
+        d['curve_param'][use_indices] = (0.0, 0.0, 0.0, 0.0)
+        d['alive'][use_indices] = 1
+
         if on_death:
             for idx in use_indices:
                 self.death_handlers[idx] = on_death
-    
+
+    # ===== 发射器 (Emitter) =====
+
+    def spawn_emitter(self, x: float, y: float, angle: float, speed: float,
+                      callback: Callable, **kwargs) -> int:
+        """
+        生成发射器节点（不渲染、不碰撞，有运动轨迹和每帧回调）
+
+        callback 签名: callback(pool, idx, x, y, lifetime)
+        """
+        kwargs['flags'] = kwargs.get('flags', FLAG_RENDER_ANGLE_LOCKED) | FLAG_IS_EMITTER
+        idx = self.spawn_bullet(x, y, angle, speed, **kwargs)
+        if idx >= 0:
+            self.emitter_callbacks[idx] = callback
+        return idx
+
+    def _update_emitters(self):
+        """驱动所有发射器回调"""
+        to_remove = []
+        for idx, cb in self.emitter_callbacks.items():
+            if self.data['alive'][idx] == 0:
+                to_remove.append(idx)
+                continue
+            x = float(self.data['pos'][idx][0])
+            y = float(self.data['pos'][idx][1])
+            lt = float(self.data['lifetime'][idx])
+            cb(self, idx, x, y, lt)
+        for idx in to_remove:
+            del self.emitter_callbacks[idx]
+
+    # ===== Tag 系统 =====
+
+    def clear_by_tag(self, tag: int):
+        """按标签消除所有子弹"""
+        mask = (self.data['alive'] == 1) & (self.data['tag'] == tag)
+        self.data['alive'][mask] = 0
+
+    def set_time_scale_by_tag(self, tag: int, time_scale: float):
+        """按标签设置时间缩放"""
+        mask = (self.data['alive'] == 1) & (self.data['tag'] == tag)
+        self.data['time_scale'][mask] = time_scale
+
+    def set_global_time_scale(self, time_scale: float):
+        """设置全部子弹的时间缩放"""
+        mask = self.data['alive'] == 1
+        self.data['time_scale'][mask] = time_scale
+
+    # ===== 销毁 =====
+
     def kill_bullet(self, idx: int, handler: Callable = None):
         """杀死子弹"""
         if 0 <= idx < self.max_bullets and self.data['alive'][idx]:
             self.data['alive'][idx] = 0
             self.polar_motions.pop(int(idx), None)
-            
+            self.emitter_callbacks.pop(idx, None)
+
             if handler is None:
                 handler = self.death_handlers.pop(idx, None)
-            
+
             x, y = self.data['pos'][idx]
             self.death_queue.append(DeathEvent(idx, x, y, handler))
-    
+
+    # ===== 主更新 =====
+
     def update(self, dt: float):
         """更新所有子弹"""
-        # 保存当前活跃状态
         self.last_alive[:] = self.data['alive']
-        
-        # 调用Numba优化的更新函数
+
         _update_bullets_optimized(self.data, dt)
 
-        # Python 层特殊运动
         self._update_polar_motions(dt)
-        
-        # 收集死亡事件
+        self._update_emitters()
+
         self._collect_deaths()
-        
-        # 处理死亡队列
         self._process_death_queue()
-        
-        # 处理生成队列
         self._process_spawn_queue()
-    
+
     def _collect_deaths(self):
-        """收集死亡事件"""
         died_mask = (self.last_alive == 1) & (self.data['alive'] == 0)
         died_indices = np.where(died_mask)[0]
-        
+
         for idx in died_indices:
             x, y = self.data['pos'][idx]
             handler = self.death_handlers.pop(idx, None)
             self.polar_motions.pop(int(idx), None)
+            self.emitter_callbacks.pop(idx, None)
             self.death_queue.append(DeathEvent(idx, x, y, handler))
             self.free_indices.append(idx)
-    
+
     def _process_death_queue(self):
-        """处理死亡队列"""
         for event in self.death_queue:
             if event.handler:
                 event.handler(self, event)
         self.death_queue.clear()
-    
+
     def _process_spawn_queue(self):
-        """处理生成队列"""
         new_queue = []
         for req in self.spawn_queue:
             if req.delay <= 0:
@@ -362,86 +449,56 @@ class OptimizedBulletPool:
                 req.delay -= 1
                 new_queue.append(req)
         self.spawn_queue = new_queue
-    
+
     def _spawn_from_request(self, req: SpawnRequest):
-        """从生成请求创建子弹"""
         if not self.free_indices:
             return
-        
+
         idx = self.free_indices.pop()
-        
-        vx = math.cos(req.angle) * req.speed
-        vy = math.sin(req.angle) * req.speed
-        
-        self.data['pos'][idx] = (req.x, req.y)
-        self.data['vel'][idx] = (vx, vy)
-        self.data['acc'][idx] = req.acc
-        self.data['angle'][idx] = req.angle
-        self.data['speed'][idx] = req.speed
-        self.data['sprite_idx'][idx] = req.sprite_idx
-        self.data['radius'][idx] = req.radius
-        self.data['lifetime'][idx] = 0.0
-        self.data['max_lifetime'][idx] = req.max_lifetime
-        self.data['alive'][idx] = 1
-        
+        self._write_bullet(idx, req.x, req.y, req.angle, req.speed, req.acc,
+                           req.sprite_idx, req.radius, req.max_lifetime,
+                           req.friction, req.tag, req.time_scale, req.flags,
+                           req.angular_vel, req.render_angle,
+                           req.curve_type, req.curve_param)
+
         if req.on_death:
             self.death_handlers[idx] = req.on_death
-        
         if req.init:
             req.init(self, idx)
-    
+
     # ===== 渲染数据准备（向量化优化） =====
-    
+
     def prepare_render_data(self) -> Dict[int, Dict]:
-        """
-        准备渲染数据（向量化操作）
-        
-        Returns:
-            按纹理索引分组的渲染数据
-            {texture_idx: {
-                'positions': ndarray,
-                'angles': ndarray,
-                'uvs': ndarray,
-                'scales': ndarray,
-                'categories': ndarray,
-                'count': int
-            }}
-        """
-        # 获取活跃子弹掩码
-        active_mask = self.data['alive'] == 1
+        """准备渲染数据（向量化操作），过滤掉 emitter"""
+        # 活跃且非 emitter
+        active_mask = (self.data['alive'] == 1) & ((self.data['flags'] & FLAG_IS_EMITTER) == 0)
         active_count = np.sum(active_mask)
-        
+
         if active_count == 0:
             return {}
-        
-        # 提取活跃子弹数据
+
         active_data = self.data[active_mask]
-        
-        # 向量化准备渲染数据
+
         positions = active_data['pos']
-        angles = active_data['angle']
+        angles = active_data['render_angle']  # v2: 使用 render_angle
         sprite_indices = active_data['sprite_idx']
-        
-        # 从注册表批量获取UV和尺寸
+
         uv_array = self.sprite_registry._uv_array
         size_array = self.sprite_registry._size_array
         category_array = self.sprite_registry._category_array
         tex_idx_array = self.sprite_registry._texture_idx_array
-        
-        # 向量化索引（关键优化点）
+
         uvs = uv_array[sprite_indices]
         scales = size_array[sprite_indices] * self._scale_factor
         categories = category_array[sprite_indices]
         tex_indices = tex_idx_array[sprite_indices]
-        
-        # 按纹理分组
+
         result = {}
         unique_tex = np.unique(tex_indices)
-        
+
         for tex_idx in unique_tex:
             mask = tex_indices == tex_idx
             count = np.sum(mask)
-            
             result[tex_idx] = {
                 'positions': positions[mask],
                 'angles': angles[mask],
@@ -450,25 +507,19 @@ class OptimizedBulletPool:
                 'categories': categories[mask],
                 'count': count,
             }
-        
+
         return result
-    
+
     def prepare_render_data_sorted(self) -> List[Dict]:
-        """
-        准备按大小分类排序的渲染数据
-        
-        Returns:
-            渲染批次列表，按大小从大到小排序
-        """
+        """准备按大小分类排序的渲染数据"""
         grouped = self.prepare_render_data()
-        
+
         result = []
-        # 按大小类别（从大到小）和纹理分组
-        for category in range(6):  # LASER=0 到 TINY=5
+        for category in range(6):
             for tex_idx, data in grouped.items():
                 cat_mask = data['categories'] == category
                 count = np.sum(cat_mask)
-                
+
                 if count > 0:
                     result.append({
                         'texture_idx': tex_idx,
@@ -480,36 +531,30 @@ class OptimizedBulletPool:
                         'count': count,
                         'category': category,
                     })
-        
+
         return result
-    
+
     # ===== 兼容旧接口 =====
-    
+
     def get_active_bullets(self):
-        """
-        兼容旧版接口：获取活跃子弹数据
-        
-        Returns:
-            (positions, colors, angles, sprite_ids)
-        """
-        active_mask = self.data['alive'] == 1
+        """兼容旧版接口：获取活跃子弹数据（过滤 emitter）"""
+        active_mask = (self.data['alive'] == 1) & ((self.data['flags'] & FLAG_IS_EMITTER) == 0)
         active_data = self.data[active_mask]
-        
+
         if len(active_data) == 0:
             return np.array([]), np.array([]), np.array([]), np.array([])
-        
+
         positions = active_data['pos']
-        colors = np.zeros((len(active_data), 3), dtype='f4')  # 不使用颜色
-        angles = active_data['angle']
-        
-        # 将索引转换回字符串ID（兼容旧渲染器）
+        colors = np.zeros((len(active_data), 3), dtype='f4')
+        angles = active_data['render_angle']  # v2: render_angle
+
         sprite_ids = np.array([
-            self.sprite_registry.get_id(idx) 
+            self.sprite_registry.get_id(idx)
             for idx in active_data['sprite_idx']
         ])
-        
+
         return positions, colors, angles, sprite_ids
-    
+
     def clear_all(self):
         """清空所有子弹"""
         self.data['alive'] = 0
@@ -518,23 +563,22 @@ class OptimizedBulletPool:
         self.free_indices = list(range(self.max_bullets))
         self.death_handlers.clear()
         self.polar_motions.clear()
+        self.emitter_callbacks.clear()
+        # 还原默认值
+        self.data['time_scale'] = 1.0
+        self.data['flags'] = FLAG_RENDER_ANGLE_LOCKED
 
     # ===== 极坐标运动 API =====
 
     def _resolve_motion_center(self, center):
-        """解析极坐标运动中心。支持对象、tuple/list、callable。"""
         if callable(center):
             center = center()
-
         if hasattr(center, 'x') and hasattr(center, 'y'):
             return float(center.x), float(center.y)
-
         if hasattr(center, 'pos'):
             return float(center.pos[0]), float(center.pos[1])
-
         if isinstance(center, (tuple, list)) and len(center) >= 2:
             return float(center[0]), float(center[1])
-
         raise ValueError(f"Unsupported polar center: {center!r}")
 
     def _apply_polar_motion(self, idx: int, motion: PolarMotion,
@@ -564,22 +608,16 @@ class OptimizedBulletPool:
             angle = math.atan2(vy, vx) if speed > 1e-8 else self.data['angle'][idx]
 
         self.data['angle'][idx] = angle
-        # Polar bullets are positioned explicitly here, so we must keep the
-        # base kinematic step from integrating the derived velocity again.
+        self.data['render_angle'][idx] = angle
         self.data['vel'][idx] = (0.0, 0.0)
 
     def attach_polar_motion(self, idx: int, center, orbit_radius: float, theta: float,
                             radial_speed: float = 0.0, angular_velocity: float = 0.0,
                             render_mode: str = 'velocity', angle_offset: float = 0.0):
-        """为已生成子弹附加极坐标运动。角度单位为弧度。"""
         motion = PolarMotion(
-            center=center,
-            radius=orbit_radius,
-            theta=theta,
-            radial_speed=radial_speed,
-            angular_velocity=angular_velocity,
-            render_mode=render_mode,
-            angle_offset=angle_offset,
+            center=center, radius=orbit_radius, theta=theta,
+            radial_speed=radial_speed, angular_velocity=angular_velocity,
+            render_mode=render_mode, angle_offset=angle_offset,
         )
         self.polar_motions[int(idx)] = motion
         self.data['acc'][idx] = (0.0, 0.0)
@@ -590,8 +628,7 @@ class OptimizedBulletPool:
                            sprite_id: str = '', delay: int = 0, init: Callable = None,
                            on_death: Callable = None, max_lifetime: float = 0.0,
                            hit_radius: float = 0.0, render_mode: str = 'velocity',
-                           angle_offset: float = 0.0) -> int:
-        """生成围绕某中心按极坐标运动的子弹。角度单位为弧度。"""
+                           angle_offset: float = 0.0, **kwargs) -> int:
         cx, cy = self._resolve_motion_center(center)
         x = cx + math.cos(theta) * orbit_radius
         y = cy + math.sin(theta) * orbit_radius
@@ -606,20 +643,14 @@ class OptimizedBulletPool:
                 init(pool, idx)
 
         return self.spawn_bullet(
-            x=x, y=y,
-            angle=theta,
-            speed=0.0,
-            sprite_id=sprite_id,
-            delay=delay,
-            init=_init,
-            on_death=on_death,
-            max_lifetime=max_lifetime,
-            radius=hit_radius,
-            acc=(0.0, 0.0),
+            x=x, y=y, angle=theta, speed=0.0,
+            sprite_id=sprite_id, delay=delay,
+            init=_init, on_death=on_death,
+            max_lifetime=max_lifetime, radius=hit_radius,
+            acc=(0.0, 0.0), **kwargs,
         )
 
     def _update_polar_motions(self, dt: float):
-        """更新所有极坐标运动子弹。"""
         if not self.polar_motions:
             return
 
@@ -629,10 +660,11 @@ class OptimizedBulletPool:
                 to_remove.append(idx)
                 continue
 
+            local_dt = dt * float(self.data['time_scale'][idx])
             old_pos = (float(self.data['pos'][idx][0]), float(self.data['pos'][idx][1]))
-            motion.theta += motion.angular_velocity * dt
-            motion.radius += motion.radial_speed * dt
-            self._apply_polar_motion(idx, motion, dt=dt, old_pos=old_pos)
+            motion.theta += motion.angular_velocity * local_dt
+            motion.radius += motion.radial_speed * local_dt
+            self._apply_polar_motion(idx, motion, dt=local_dt, old_pos=old_pos)
 
             x, y = self.data['pos'][idx]
             if x < -1.5 or x > 1.5 or y < -1.5 or y > 1.5:
@@ -646,38 +678,109 @@ class OptimizedBulletPool:
 # ============= Numba JIT 优化函数 =============
 
 @njit(cache=True)
-def _update_bullets_optimized(data, dt: float):
+def _update_bullets_optimized(data, dt):
     """
-    优化的子弹更新函数（Numba JIT）
+    v2 子弹更新内核（Numba JIT）
+
+    新增处理：time_scale, friction, render_angle/angular_vel,
+    bounce, curve, emitter 边界豁免
     """
     n = len(data)
     for i in range(n):
         if data[i]['alive'] == 0:
             continue
-        
-        # 更新生命周期
-        data[i]['lifetime'] += dt
-        
-        # 检查最大生命周期
+
+        # 每子弹独立时间缩放
+        ts = data[i]['time_scale']
+        local_dt = dt * ts
+
+        data[i]['lifetime'] += local_dt
+
+        # 生命周期检查
         max_life = data[i]['max_lifetime']
         if max_life > 0.0 and data[i]['lifetime'] >= max_life:
             data[i]['alive'] = 0
             continue
-        
-        # 更新速度（加速度）
-        data[i]['vel'][0] += data[i]['acc'][0] * dt
-        data[i]['vel'][1] += data[i]['acc'][1] * dt
-        
-        # 更新位置
-        data[i]['pos'][0] += data[i]['vel'][0] * dt
-        data[i]['pos'][1] += data[i]['vel'][1] * dt
-        
-        # 更新速度大小和角度
-        vx, vy = data[i]['vel'][0], data[i]['vel'][1]
+
+        # ---- 内置数学曲线 ----
+        ct = data[i]['curve_type']
+        if ct > 0:
+            amp = data[i]['curve_param'][0]
+            freq = data[i]['curve_param'][1]
+            phase = data[i]['curve_param'][2]
+            base = data[i]['curve_param'][3]
+            t = data[i]['lifetime']
+            if ct == 1:    # SIN_SPEED
+                data[i]['speed'] = base + amp * math.sin(freq * t + phase)
+            elif ct == 2:  # SIN_ANGLE
+                data[i]['angle'] += amp * math.sin(freq * t + phase) * local_dt
+            elif ct == 3:  # COS_SPEED
+                data[i]['speed'] = base + amp * math.cos(freq * t + phase)
+            elif ct == 4:  # LINEAR_SPEED
+                data[i]['speed'] = base + amp * t
+
+        # ---- 摩擦力 / 阻尼 ----
+        friction = data[i]['friction']
+        if friction > 0.0:
+            factor = 1.0 - friction * local_dt
+            if factor < 0.0:
+                factor = 0.0
+            data[i]['speed'] *= factor
+
+        # ---- 从 angle + speed 重建 vel（曲线/摩擦后） ----
+        speed = data[i]['speed']
+        angle = data[i]['angle']
+        data[i]['vel'][0] = speed * math.cos(angle)
+        data[i]['vel'][1] = speed * math.sin(angle)
+
+        # ---- 加速度 ----
+        data[i]['vel'][0] += data[i]['acc'][0] * local_dt
+        data[i]['vel'][1] += data[i]['acc'][1] * local_dt
+
+        # ---- 位置 ----
+        data[i]['pos'][0] += data[i]['vel'][0] * local_dt
+        data[i]['pos'][1] += data[i]['vel'][1] * local_dt
+
+        # ---- 重算 speed / angle ----
+        vx = data[i]['vel'][0]
+        vy = data[i]['vel'][1]
         data[i]['speed'] = math.sqrt(vx * vx + vy * vy)
         data[i]['angle'] = math.atan2(vy, vx)
-        
-        # 边界检测
-        x, y = data[i]['pos'][0], data[i]['pos'][1]
-        if x < -1.5 or x > 1.5 or y < -1.5 or y > 1.5:
-            data[i]['alive'] = 0
+
+        # ---- 渲染角 ----
+        flags = data[i]['flags']
+        if flags & 8:  # RENDER_ANGLE_LOCKED
+            data[i]['render_angle'] = data[i]['angle']
+        else:
+            data[i]['render_angle'] += data[i]['angular_vel'] * local_dt
+
+        # ---- 边界处理 ----
+        x = data[i]['pos'][0]
+        y = data[i]['pos'][1]
+
+        if flags & 1:  # BOUNCE_X
+            if x < -1.0:
+                data[i]['vel'][0] = -data[i]['vel'][0]
+                data[i]['pos'][0] = -1.0
+                data[i]['angle'] = math.atan2(data[i]['vel'][1], data[i]['vel'][0])
+            elif x > 1.0:
+                data[i]['vel'][0] = -data[i]['vel'][0]
+                data[i]['pos'][0] = 1.0
+                data[i]['angle'] = math.atan2(data[i]['vel'][1], data[i]['vel'][0])
+
+        if flags & 2:  # BOUNCE_Y
+            if y < -1.0:
+                data[i]['vel'][1] = -data[i]['vel'][1]
+                data[i]['pos'][1] = -1.0
+                data[i]['angle'] = math.atan2(data[i]['vel'][1], data[i]['vel'][0])
+            elif y > 1.0:
+                data[i]['vel'][1] = -data[i]['vel'][1]
+                data[i]['pos'][1] = 1.0
+                data[i]['angle'] = math.atan2(data[i]['vel'][1], data[i]['vel'][0])
+
+        # 非反弹子弹的屏幕外消亡
+        if not (flags & 3):
+            x = data[i]['pos'][0]
+            y = data[i]['pos'][1]
+            if x < -1.5 or x > 1.5 or y < -1.5 or y > 1.5:
+                data[i]['alive'] = 0
