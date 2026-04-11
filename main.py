@@ -4,6 +4,7 @@
 import sys
 import os
 import json
+import time
 import moderngl
 
 # 添加src目录到Python路径
@@ -14,6 +15,7 @@ from src.core.input_manager import KeyboardState, KEY_UP, KEY_DOWN, KEY_z, KEY_E
 from src.core.audio_backend import init_audio_backend
 from src.render import Renderer
 from src.game.bullet import BulletPool
+from src.game.bullet.optimized_pool import OptimizedBulletPool
 from src.game.player import Player, check_collisions, load_player
 from src.game.stage import StageManager
 from src.game.boss import BossManager
@@ -43,6 +45,8 @@ from game_content.stages.stage1.stage_script import Stage1
 
 # ===== Debug 模式 =====
 DEBUG_MODE = "--debug" in sys.argv
+PROFILE_MODE = "--profile" in sys.argv
+PROFILE_REPORT_FRAMES = 120
 
 
 def build_debug_menu(stage_class):
@@ -201,7 +205,8 @@ def initialize_game_objects(audio_manager=None, background_renderer=None):
     """初始化游戏对象（玩家、子弹池、关卡管理器等）"""
     player = load_player("tao")
     print(f"已加载玩家: {player.name}")
-    bullet_pool = BulletPool(max_bullets=50000)
+    # 使用优化版子弹池（整数 sprite 索引 + 向量化渲染数据准备）
+    bullet_pool = OptimizedBulletPool(max_bullets=50000)
     laser_pool = LaserPool(max_lasers=100)
     item_pool = ItemPool(max_items=1000)
     boss_manager = BossManager()
@@ -364,9 +369,53 @@ def main():
             paused = False
             pause_menu_index = 0
             game_result_state = None
+            profile_acc = {
+                "events": 0.0,
+                "update": 0.0,
+                "collision": 0.0,
+                "render": 0.0,
+                "frame": 0.0,
+            }
+            profile_frames = 0
+
+            def _profile_maybe_report():
+                nonlocal profile_frames, profile_acc
+                if (not PROFILE_MODE) or profile_frames < PROFILE_REPORT_FRAMES:
+                    return
+
+                inv = 1.0 / profile_frames
+                avg_ms = {k: (v * inv * 1000.0) for k, v in profile_acc.items()}
+
+                bullets_alive = -1
+                if hasattr(bullet_pool, 'data') and 'alive' in bullet_pool.data.dtype.fields:
+                    bullets_alive = int((bullet_pool.data['alive'] == 1).sum())
+
+                enemy_count = 0
+                if stage_manager.current_context:
+                    enemy_count += len(stage_manager.current_context.get_enemy_scripts())
+                if stage_manager.current_stage and stage_manager.current_stage._current_boss:
+                    boss = stage_manager.current_stage._current_boss
+                    if boss._active:
+                        enemy_count += 1
+
+                print(
+                    "[PROFILE] "
+                    f"avg_frame={avg_ms['frame']:.3f}ms "
+                    f"events={avg_ms['events']:.3f}ms "
+                    f"update={avg_ms['update']:.3f}ms "
+                    f"collision={avg_ms['collision']:.3f}ms "
+                    f"render={avg_ms['render']:.3f}ms "
+                    f"fps={clock.get_fps():.1f} maxfps={clock.get_max_fps():.1f} "
+                    f"bullets={bullets_alive} targets={enemy_count}"
+                )
+
+                profile_acc = {k: 0.0 for k in profile_acc}
+                profile_frames = 0
 
             while running:
                 dt = clock.tick(60)
+                frame_start = time.perf_counter() if PROFILE_MODE else 0.0
+                events_start = time.perf_counter() if PROFILE_MODE else 0.0
                 
                 for event in window.poll_events():
                     if event['type'] == EVENT_QUIT:
@@ -431,20 +480,32 @@ def main():
                                     stage_manager._engine_refs['player'] = player
                                     if stage_manager.current_context:
                                         stage_manager.current_context.player = player
+                if PROFILE_MODE:
+                    profile_acc["events"] += time.perf_counter() - events_start
                 
                 keys = KeyboardState(window.get_key_states())
 
                 # ===== 加载画面模式 =====
                 if stage_manager.loading_info:
+                    loading_render_start = time.perf_counter() if PROFILE_MODE else 0.0
                     ctx.viewport = (0, 0, screen_size[0], screen_size[1])
                     ctx.clear(0.0, 0.0, 0.0)
                     loading_renderer.render(stage_manager.loading_info)
                     hud.state.fps = round(clock.get_fps())
                     hud.state.max_fps = round(clock.get_max_fps())
                     window.swap_buffers()
+                    if PROFILE_MODE:
+                        profile_acc["render"] += time.perf_counter() - loading_render_start
 
                     if not paused:
+                        loading_update_start = time.perf_counter() if PROFILE_MODE else 0.0
                         stage_manager.update(dt, bullet_pool, player)
+                        if PROFILE_MODE:
+                            profile_acc["update"] += time.perf_counter() - loading_update_start
+                    if PROFILE_MODE:
+                        profile_acc["frame"] += time.perf_counter() - frame_start
+                        profile_frames += 1
+                        _profile_maybe_report()
                     continue
 
                 # ===== 正常游戏模式 =====
@@ -454,6 +515,7 @@ def main():
                     if dialog_state and hasattr(dialog_state, 'is_active') and dialog_state.is_active():
                         dialog_active = True
 
+                update_start = time.perf_counter() if PROFILE_MODE else 0.0
                 if not paused:
                     if not dialog_active:
                         # 收集敌人列表用于追踪弹
@@ -471,14 +533,22 @@ def main():
                         item_pool.update(player.pos[0], player.pos[1], dt)
 
                     stage_manager.update(dt, bullet_pool, player)
+                if PROFILE_MODE:
+                    profile_acc["update"] += time.perf_counter() - update_start
 
                 if stage_manager.loading_info:
+                    loading_render_start = time.perf_counter() if PROFILE_MODE else 0.0
                     ctx.viewport = (0, 0, screen_size[0], screen_size[1])
                     ctx.clear(0.0, 0.0, 0.0)
                     loading_renderer.render(stage_manager.loading_info)
                     hud.state.fps = round(clock.get_fps())
                     hud.state.max_fps = round(clock.get_max_fps())
                     window.swap_buffers()
+                    if PROFILE_MODE:
+                        profile_acc["render"] += time.perf_counter() - loading_render_start
+                        profile_acc["frame"] += time.perf_counter() - frame_start
+                        profile_frames += 1
+                        _profile_maybe_report()
                     continue
                 
                 player.score = item_pool.stats.score
@@ -487,6 +557,7 @@ def main():
 
                 collision_mgr = get_collision_manager()
 
+                collision_start = time.perf_counter() if PROFILE_MODE else 0.0
                 if not paused and not dialog_active:
                     hit_x, hit_y = player.get_hit_position()
                     if player.invincible_timer <= 0:
@@ -576,6 +647,8 @@ def main():
                         item_pool.stats.graze += graze_count
                         item_pool.stats.update_point_rate()
                         player.add_graze(graze_count)
+                if PROFILE_MODE:
+                    profile_acc["collision"] += time.perf_counter() - collision_start
                 
                 hud.update_from_player(player)
                 hud.state.graze = item_pool.stats.graze
@@ -589,6 +662,7 @@ def main():
                 if hasattr(stage_manager, 'current_context') and stage_manager.current_context:
                     enemy_scripts = stage_manager.current_context.get_enemy_scripts()
 
+                render_start = time.perf_counter() if PROFILE_MODE else 0.0
                 renderer.render_frame(
                     bullet_pool, player, stage_manager, laser_pool,
                     viewport_rect=game_viewport,
@@ -613,6 +687,11 @@ def main():
                 hud.state.max_fps = round(clock.get_max_fps())
 
                 window.swap_buffers()
+                if PROFILE_MODE:
+                    profile_acc["render"] += time.perf_counter() - render_start
+                    profile_acc["frame"] += time.perf_counter() - frame_start
+                    profile_frames += 1
+                    _profile_maybe_report()
             
             # 保存高分记录
             item_pool.stats.save_hiscore()

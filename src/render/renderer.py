@@ -19,6 +19,7 @@ import moderngl
 import numpy as np
 import math
 from .laser_renderer import LaserRenderer
+from .optimized_bullet_renderer import OptimizedBulletRenderer
 
 
 # 子弹大小分类常量（用于高效分桶排序）
@@ -114,6 +115,8 @@ class Renderer:
         
         # 背景渲染器（可选，延迟初始化）
         self.background_renderer = None
+        # 优化版敌弹渲染器（仅当 bullet_pool 支持 prepare_render_data_sorted 时启用）
+        self.optimized_bullet_renderer = OptimizedBulletRenderer(ctx, textures)
     
     def _build_sprite_size_cache(self):
         """构建精灵大小分类缓存"""
@@ -457,6 +460,11 @@ class Renderer:
         - 按大小分类分桶，然后按桶顺序渲染
         - 同一桶内按纹理分组批量渲染
         """
+        # 优先走优化版渲染路径，减少 Python 层分桶与逐精灵查询开销
+        if hasattr(bullet_pool, 'prepare_render_data_sorted'):
+            self.optimized_bullet_renderer.render_from_pool(bullet_pool)
+            return
+
         positions, colors, angles, sprite_ids = bullet_pool.get_active_bullets()
         active_count = len(positions)
         
@@ -1167,4 +1175,5 @@ class Renderer:
     def cleanup(self):
         """清理渲染资源"""
         # ModernGL的资源会自动释放，但可以显式释放
-        pass
+        if hasattr(self, 'optimized_bullet_renderer') and self.optimized_bullet_renderer:
+            self.optimized_bullet_renderer.cleanup()
