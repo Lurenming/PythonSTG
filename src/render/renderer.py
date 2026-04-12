@@ -18,6 +18,7 @@
 import moderngl
 import numpy as np
 import math
+import time
 from .laser_renderer import LaserRenderer
 from .optimized_bullet_renderer import OptimizedBulletRenderer
 
@@ -377,7 +378,9 @@ class Renderer:
         """
         self.background_renderer = background_renderer
     
-    def render_frame(self, bullet_pool, player, stage_manager, laser_pool=None, viewport_rect=None, item_renderer=None, items=None, dt=0.0, enemy_scripts=None, item_pool=None):
+    def render_frame(self, bullet_pool, player, stage_manager, laser_pool=None, viewport_rect=None,
+                     item_renderer=None, items=None, dt=0.0, enemy_scripts=None, item_pool=None,
+                     profile_segments=None):
         """
         渲染一帧（按正确的图层顺序）
 
@@ -403,6 +406,8 @@ class Renderer:
             dt: 时间步长（用于背景动画更新）
             enemy_scripts: 敌人脚本列表（可选，新的敌人系统）
         """
+        do_profile = profile_segments is not None
+
         # 保存并切换视口到游戏区域
         prev_viewport = self.ctx.viewport
         if viewport_rect:
@@ -412,41 +417,65 @@ class Renderer:
         self.ctx.clear(0.1, 0.1, 0.1)
 
         # ===== 层级 0: 背景 =====
+        seg_start = time.perf_counter() if do_profile else 0.0
         if self.background_renderer:
             self.background_renderer.update(dt)
             self.background_renderer.render()
+        if do_profile:
+            profile_segments['render_bg'] = profile_segments.get('render_bg', 0.0) + (time.perf_counter() - seg_start)
 
         # ===== 层级 1: 敌人/Boss =====
+        seg_start = time.perf_counter() if do_profile else 0.0
         self._render_boss(stage_manager)
         self._render_enemies(stage_manager, enemy_scripts)
+        if do_profile:
+            profile_segments['render_enemy'] = profile_segments.get('render_enemy', 0.0) + (time.perf_counter() - seg_start)
 
         # ===== 层级 2: 道具 =====
+        seg_start = time.perf_counter() if do_profile else 0.0
         if item_renderer:
             if item_pool is not None and hasattr(item_pool, 'get_render_data'):
                 render_data = item_pool.get_render_data()
                 item_renderer.render_items_soa(*render_data)
             elif items:
                 item_renderer.render_items(items)
+        if do_profile:
+            profile_segments['render_item'] = profile_segments.get('render_item', 0.0) + (time.perf_counter() - seg_start)
 
         # ===== 层级 3: 自机子弹 + 自机激光 =====
+        seg_start = time.perf_counter() if do_profile else 0.0
         self._render_player_bullets(player)
         self._render_player_lasers(player)
+        if do_profile:
+            profile_segments['render_player'] = profile_segments.get('render_player', 0.0) + (time.perf_counter() - seg_start)
 
         # ===== 层级 4-5: Options、自机本体 =====
+        seg_start = time.perf_counter() if do_profile else 0.0
         self._render_player(player)
+        if do_profile:
+            profile_segments['render_player_sprite'] = profile_segments.get('render_player_sprite', 0.0) + (time.perf_counter() - seg_start)
 
         # ===== 层级 6: 敌机弹幕（按大小排序） =====
+        seg_start = time.perf_counter() if do_profile else 0.0
         self._render_bullets_sorted(bullet_pool)
+        if do_profile:
+            profile_segments['render_enemy_bullet'] = profile_segments.get('render_enemy_bullet', 0.0) + (time.perf_counter() - seg_start)
 
         # ===== 层级 7: 激光 =====
+        seg_start = time.perf_counter() if do_profile else 0.0
         if laser_pool:
             lasers, bent_lasers = laser_pool.get_all_lasers()
             self.laser_renderer.render_lasers(lasers)
             self.laser_renderer.render_bent_lasers(bent_lasers)
+        if do_profile:
+            profile_segments['render_laser'] = profile_segments.get('render_laser', 0.0) + (time.perf_counter() - seg_start)
 
         # ===== 层级 8: 自机判定点（最高优先级） =====
+        seg_start = time.perf_counter() if do_profile else 0.0
         if player.is_focused:
             self._render_hitbox(player)
+        if do_profile:
+            profile_segments['render_hitbox'] = profile_segments.get('render_hitbox', 0.0) + (time.perf_counter() - seg_start)
 
         # 还原视口
         self.ctx.viewport = prev_viewport
@@ -462,8 +491,9 @@ class Renderer:
         """
         # 优先走优化版渲染路径，减少 Python 层分桶与逐精灵查询开销
         if hasattr(bullet_pool, 'prepare_render_data_sorted'):
-            self.optimized_bullet_renderer.render_from_pool(bullet_pool)
-            return
+            rendered_batches = self.optimized_bullet_renderer.render_from_pool(bullet_pool)
+            if rendered_batches > 0:
+                return
 
         positions, colors, angles, sprite_ids = bullet_pool.get_active_bullets()
         active_count = len(positions)
@@ -979,34 +1009,54 @@ class Renderer:
         # ---------- 准备渲染数据 ----------
         positions = active['pos'].copy()
         angles = active['angle'].copy()
+        sprite_indices = active['sprite_idx']
 
         uv_data = np.zeros((count, 4), dtype='f4')
         scale_data = np.zeros((count, 2), dtype='f4')
 
         default_size = 8.0
         scale_factor = self.bullet_scale_factor
+        default_uv = np.array([0.0, 0.0, 1.0, 1.0], dtype='f4')
+        default_scale = np.array(
+            [default_size * scale_factor, default_size * scale_factor], dtype='f4'
+        )
 
         idx_to_id = player.bullet_pool.sprite_idx_to_id
 
-        for j in range(count):
-            sprite_idx = int(active[j]['sprite_idx'])
-            sprite_id = idx_to_id.get(sprite_idx, '')
+        # 仅为本帧出现过的 sprite_idx 计算一次 UV/尺寸，降低 Python 循环开销
+        unique_sprite_indices = np.unique(sprite_indices)
+        per_sprite_render_data = {}
+        for sprite_idx in unique_sprite_indices:
+            sid = int(sprite_idx)
+            sprite_id = idx_to_id.get(sid, '')
 
-            rect = None
-            if sprite_id and sprite_id in sprite_lookup:
-                spr = sprite_lookup[sprite_id]
-                rect = spr.get('rect')
+            uv = default_uv
+            scale = default_scale
+            if sprite_id:
+                spr = sprite_lookup.get(sprite_id)
+                if spr:
+                    rect = spr.get('rect')
+                    if rect:
+                        uv = np.array(
+                            [
+                                rect[0] / tex_w,
+                                rect[1] / tex_h,
+                                (rect[0] + rect[2]) / tex_w,
+                                (rect[1] + rect[3]) / tex_h,
+                            ],
+                            dtype='f4',
+                        )
+                        scale = np.array(
+                            [rect[2] * scale_factor, rect[3] * scale_factor], dtype='f4'
+                        )
+            per_sprite_render_data[sid] = (uv, scale)
 
-            if rect:
-                u0 = rect[0] / tex_w
-                v0 = rect[1] / tex_h
-                u1 = (rect[0] + rect[2]) / tex_w
-                v1 = (rect[1] + rect[3]) / tex_h
-                uv_data[j] = [u0, v0, u1, v1]
-                scale_data[j] = [rect[2] * scale_factor, rect[3] * scale_factor]
-            else:
-                uv_data[j] = [0.0, 0.0, 1.0, 1.0]
-                scale_data[j] = [default_size * scale_factor, default_size * scale_factor]
+        for sprite_idx in unique_sprite_indices:
+            sid = int(sprite_idx)
+            mask = sprite_indices == sprite_idx
+            uv, scale = per_sprite_render_data[sid]
+            uv_data[mask] = uv
+            scale_data[mask] = scale
 
         # ---------- 发送到 GPU ----------
         self.instance_vbo.write(positions.tobytes())

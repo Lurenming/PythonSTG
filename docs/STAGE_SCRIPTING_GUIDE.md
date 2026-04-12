@@ -1,7 +1,7 @@
-# pystg 关卡脚本开发指南
+# pystg 弹幕脚本开发指南 (v2)
 
 > 本文档以**当前仓库实际可运行的 API** 为准。  
-> 如果代码与旧文档冲突，请以 `src/game/stage/`、`game_content/stages/stage1/` 和 `main.py` 中的现有实现为准。
+> 最近更新：2026-04-12，弹幕系统 v2 大改造后。
 
 ---
 
@@ -15,19 +15,19 @@
 6. [Wave：波次编排](#6-wave波次编排)
 7. [EnemyScript：小怪行为](#7-enemyscript小怪行为)
 8. [SpellCard / NonSpell：Boss 攻击](#8-spellcard--nonspellboss-攻击)
-9. [BossDef：Boss 阶段组织](#9-bossdefboss-阶段组织)
-10. [当前真正可用的弹幕 API](#10-当前真正可用的弹幕-api)
-11. [当前还不能依赖的能力](#11-当前还不能依赖的能力)
-12. [Stage1 编写建议](#12-stage1-编写建议)
-13. [常见问题](#13-常见问题)
+9. [BossDef：Boss 阶段组织](#9-bossdef-boss-阶段组织)
+10. [弹幕 API 完整参考（v2）](#10-弹幕-api-完整参考v2)
+11. [v2 新机制详解](#11-v2-新机制详解)
+12. [高级模式示例](#12-高级模式示例)
+13. [坐标与角度](#13-坐标与角度)
+14. [可用弹型与颜色](#14-可用弹型与颜色)
+15. [常见问题](#15-常见问题)
 
 ---
 
 ## 1. 当前工作流
 
-当前仓库使用的是**程序化关卡脚本**流程，不是旧版 `stage.json` 时间线工作流。
-
-你现在应该这样理解：
+当前仓库使用的是**程序化关卡脚本**流程：
 
 - 整面关卡：继承 `StageScript`
 - 道中一段：继承 `Wave`
@@ -35,58 +35,30 @@
 - Boss 单张攻击：继承 `SpellCard` 或 `NonSpell`
 - Boss 阶段列表：在 `StageScript` 里用 `BossDef` + `nonspell()` / `spellcard()` 组织
 
-实际参考文件：
-
-- [stage_script.py](C:\Users\m1573\Documents\Downloads\pystg\game_content\stages\stage1\stage_script.py)
-- [stage_base.py](C:\Users\m1573\Documents\Downloads\pystg\src\game\stage\stage_base.py)
-- [wave_base.py](C:\Users\m1573\Documents\Downloads\pystg\src\game\stage\wave_base.py)
-- [enemy_script.py](C:\Users\m1573\Documents\Downloads\pystg\src\game\stage\enemy_script.py)
-- [spellcard.py](C:\Users\m1573\Documents\Downloads\pystg\src\game\stage\spellcard.py)
-- [boss_base.py](C:\Users\m1573\Documents\Downloads\pystg\src\game\stage\boss_base.py)
-
 ---
 
 ## 2. 推荐目录结构
 
-每个关卡推荐保持这种结构：
-
 ```text
 game_content/stages/stage1/
 ├── __init__.py
-├── stage_script.py
-├── waves/
-│   ├── __init__.py
+├── stage_script.py          # 整面流程
+├── waves/                   # 道中波次
 │   └── *.py
-├── enemies/
-│   ├── __init__.py
+├── enemies/                 # 可复用小怪
 │   └── *.py
-├── spellcards/
-│   ├── __init__.py
+├── spellcards/              # Boss 攻击
 │   └── *.py
-├── dialogue/
-│   ├── __init__.py
-│   └── *.py
-└── audio/
-    ├── se/
-    └── music/
+├── bosses/                  # Boss 定义（可选）
+├── dialogue/                # 对话
+└── audio/                   # 关卡私有音频
 ```
-
-说明：
-
-- `stage_script.py` 负责整面流程
-- `waves/` 负责“什么时候刷什么”
-- `enemies/` 负责可复用小怪
-- `spellcards/` 负责 Boss 的单张攻击
-- `dialogue/` 负责对话文本
-- `audio/` 负责关卡私有音频
 
 ---
 
 ## 3. 快速开始
 
 ### 3.1 新建一张符卡
-
-在 `game_content/stages/stage1/spellcards/` 下创建：
 
 ```python
 from src.game.stage.spellcard import SpellCard
@@ -120,15 +92,10 @@ spellcard = MySpell
 
 ### 3.2 把它挂到 Boss 上
 
-在 `stage_script.py` 中：
-
 ```python
 from src.game.stage.stage_base import StageScript, BossDef
 from src.game.stage.boss_base import nonspell, spellcard
-
 from game_content.stages.stage1.spellcards.my_spell import MySpell
-from game_content.stages.stage1.spellcards.nonspell_1 import NonSpell1
-
 
 class Stage1(StageScript):
     boss = BossDef(
@@ -137,279 +104,119 @@ class Stage1(StageScript):
         texture="enemy_boss",
         phases=[
             nonspell(NonSpell1, hp=800, time=30, bonus=100000),
-            spellcard(MySpell, "火符「Example」", hp=1000, time=45, bonus=500000),
+            spellcard(MySpell, "火符「Example」", hp=1000, time=45),
         ],
     )
-```
 
-### 3.3 在关卡流程里调用
-
-```python
-async def run(self):
-    await self.wait(60)
-    await self.run_boss(self.boss)
+    async def run(self):
+        await self.wait(60)
+        await self.run_boss(self.boss)
 ```
 
 ---
 
 ## 4. 四层分工
 
-### `StageScript`
-
-负责整面时间线，例如：
-
-- 开场等待
-- 道中波次顺序
-- midboss
-- 对话
-- boss
-- 收尾
-
-### `Wave`
-
-负责“在某一段时间里刷什么敌人、间隔多久、刷几波”。
-
-### `EnemyScript`
-
-负责单个小怪从出生到退场的完整行为。
-
-### `SpellCard` / `NonSpell`
-
-负责 Boss 某一段攻击。
-
-推荐原则：
-
-- 不要把整面关卡都写进一个符卡
-- 不要把所有小怪逻辑都塞进 `Wave`
-- 不要在 `StageScript` 里直接手搓所有发弹细节
+| 层 | 基类 | 职责 |
+|---|---|---|
+| **StageScript** | `StageScript` | 整面时间线：等待、波次、midboss、对话、boss |
+| **Wave** | `Wave` | 一段时间内刷什么敌人、间隔多久 |
+| **EnemyScript** | `EnemyScript` | 单个小怪从出生到退场的完整行为 |
+| **SpellCard / NonSpell** | `SpellCard` / `NonSpell` | Boss 某一段攻击 |
 
 ---
 
 ## 5. StageScript：整面流程
 
-最小模板：
-
 ```python
-from src.game.stage.stage_base import StageScript, BossDef
-from src.game.stage.boss_base import nonspell, spellcard
-
-from game_content.stages.stage1.waves.opening_wave import OpeningWave
-from game_content.stages.stage1.spellcards.nonspell_1 import NonSpell1
-from game_content.stages.stage1.spellcards.spell_1 import Spell1
-
-
 class Stage1(StageScript):
     id = "stage1"
     name = "Stage 1"
-    title = "Stage Title"
-    subtitle = "Stage Subtitle"
+    title = "标题"
     bgm = "00.wav"
     boss_bgm = "01.wav"
     background = "stage1_bg"
 
-    boss = BossDef(
-        id="boss1",
-        name="Boss Name",
-        texture="enemy_boss",
-        phases=[
-            nonspell(NonSpell1, hp=800, time=30),
-            spellcard(Spell1, "符卡名", hp=1200, time=60),
-        ],
-    )
+    boss = BossDef(...)
 
     async def run(self):
         await self.run_wave(OpeningWave)
         await self.wait(60)
+        await self.run_boss(self.midboss, is_midboss=True)
+        await self.play_dialogue([...])
         await self.run_boss(self.boss)
 ```
 
-当前 `StageScript` 里真正常用的流程 API：
-
-- `await self.wait(frames)`
-- `await self.wait_seconds(seconds)`
-- `await self.run_wave(WaveClass)`
-- `await self.run_boss(boss_def, is_midboss=False)`
-- `await self.play_dialogue(dialogue_list)`
-- `await self.play_bgm(name)`
-
-说明：
-
-- `bgm` 会在关卡开始时自动播放
-- `boss_bgm` 会在 `run_boss(..., is_midboss=False)` 时自动切换
-- 对话可以直接写在 `run()` 里，不需要额外 JSON
+常用 API：`wait()`, `wait_seconds()`, `run_wave()`, `run_boss()`, `play_dialogue()`, `play_bgm()`.
 
 ---
 
 ## 6. Wave：波次编排
 
-`Wave` 负责“刷怪”和“局部节奏”，不负责整面关卡。
-
-示例：
-
 ```python
-from src.game.stage.wave_base import Wave
-from game_content.stages.stage1.enemies.fairy import SideFlyFairy
-
-
 class FairyWave(Wave):
     async def run(self):
         for i in range(5):
             self.spawn_enemy_class(SideFlyFairy, x=-0.8 + i * 0.2, y=1.0)
             await self.wait(20)
-
         await self.wait(180)
-
-
-wave = FairyWave
 ```
-
-当前常用 API：
-
-- `self.fire(x, y, angle, speed, ...)`
-- `self.fire_circle(x, y, count, speed, ...)`
-- `self.fire_arc(x, y, count, speed, ...)`
-- `self.fire_at_player(x, y, speed, ...)`
-- `await self.wait(frames)`
-- `await self.wait_seconds(seconds)`
-- `self.spawn_enemy_class(EnemyClass, x=..., y=...)`
-- `self.play_se(name, volume=None)`
-
-建议：
-
-- `Wave` 里更推荐刷敌人，而不是直接大量从固定点手搓整段弹幕
-- 如果一段道中弹幕明显是“某个小怪负责发”，那就把发弹逻辑放进 `EnemyScript`
 
 ---
 
 ## 7. EnemyScript：小怪行为
 
-示例：
-
 ```python
-from src.game.stage.enemy_script import EnemyScript
-
-
 class SideFlyFairy(EnemyScript):
     hp = 30
     sprite = "enemy_fairy"
-    score = 200
-    drops = {"power": 2, "point": 1}
 
     async def run(self):
         await self.move_to(self.x, 0.5, duration=40)
-
         for _ in range(3):
-            self.fire_at_player(
-                speed=2.2,
-                bullet_type="ball_s",
-                color="red",
-            )
+            self.fire_at_player(speed=2.2, bullet_type="ball_s", color="red")
             await self.wait(20)
-
         await self.move_linear(0.0, -0.8, duration=80)
 ```
-
-当前常用 API：
-
-- `await self.move_to(x, y, duration)`
-- `await self.move_linear(dx, dy, duration)`
-- `self.set_position(x, y)`
-- `self.fire(...)`
-- `self.fire_circle(...)`
-- `self.fire_arc(...)`
-- `self.fire_at_player(...)`
-- `await self.wait(frames)`
-- `self.play_se(name, volume=None)`
-- `self.clear_bullets(to_items=False)`
-
-建议：
-
-- 小怪的“入场路径 + 开火模式 + 退场路径”尽量写成一个完整行为类
-- `Wave` 只负责“什么时候生成这类小怪”
 
 ---
 
 ## 8. SpellCard / NonSpell：Boss 攻击
 
-### 基本模板
+### 基本生命周期
 
-```python
-from src.game.stage.spellcard import SpellCard
-
-
-class MySpell(SpellCard):
-    name = "月符「Example」"
-    hp = 1200
-    time_limit = 60
-    bonus = 1000000
-
-    async def setup(self):
-        await self.boss.move_to(0, 0.5, duration=60)
-
-    async def run(self):
-        angle = 0
-        while True:
-            self.fire_circle(
-                count=16,
-                speed=2.0,
-                start_angle=angle,
-                bullet_type="ball_m",
-                color="blue",
-            )
-            angle += 12
-            await self.wait(12)
-
-
-spellcard = MySpell
+```
+setup() → run() → (被击败 或 超时) → on_defeated() / on_timeout()
 ```
 
-### 并行动作的写法
-
-Boss 边移动边发弹时，当前项目常用这种写法：
+### 并行动作（边移动边发弹）
 
 ```python
 async def run(self):
     while True:
         move_coro = self.boss.move_to(0.4, 0.6, duration=90)
         for _ in range(90):
-            try:
-                next(move_coro)
-            except StopIteration:
-                pass
+            try: next(move_coro)
+            except StopIteration: pass
 
             if self.time % 6 == 0:
                 self.fire_at_player(speed=2.5, color="red")
-
             yield
 ```
 
-说明：
+### 符卡内常用属性
 
-- 正常情况下优先用 `await`
-- 只有“同一帧里同时推进多个动作”时，才手动推进生成器并配合 `yield`
-
-### 常用辅助方法
-
-- `self.time`
-- `self.time_seconds`
-- `self.time_remaining`
-- `self.angle_to_player()`
-- `self.play_se(name, volume=None)`
-- `self.clear_bullets(to_items=False)`
+- `self.time` — 当前帧数
+- `self.time_seconds` — 当前时间（秒）
+- `self.time_remaining` — 剩余时间（秒）
+- `self.boss` — Boss 对象（可访问 `.x`, `.y`）
+- `self.ctx` — StageContext（底层 API）
 
 ---
 
 ## 9. BossDef：Boss 阶段组织
 
-当前项目里，Boss 阶段不是通过 `boss.json` 驱动，而是直接在 `stage_script.py` 中声明。
-
-示例：
-
 ```python
-from src.game.stage.stage_base import BossDef
-from src.game.stage.boss_base import nonspell, spellcard
-
-
 boss = BossDef(
     id="rumia_boss",
     name="ルーミア",
@@ -422,297 +229,572 @@ boss = BossDef(
 )
 ```
 
-两个辅助函数来自 [boss_base.py](C:\Users\m1573\Documents\Downloads\pystg\src\game\stage\boss_base.py)：
-
-- `nonspell(ScriptClass, hp, time, bonus=...)`
-- `spellcard(ScriptClass, name, hp, time, bonus=..., practice=True)`
-
-建议：
-
-- 不要把太多“初始化流程”塞进 `BossDef`
-- `BossDef` 只组织阶段，具体表现交给 `SpellCard`
-
 ---
 
-## 10. 当前真正可用的弹幕 API
+## 10. 弹幕 API 完整参考（v2）
 
-### `self.fire(...)`
+以下所有方法在 `SpellCard`、`NonSpell`、`EnemyScript`、`Wave` 中均可使用。
 
-当前内容层稳定可依赖的参数是：
+### 10.1 self.fire(...)
+
+发射单发子弹。
 
 ```python
 self.fire(
-    x=0.0,
-    y=0.5,
-    angle=-90,
+    x=0.0, y=0.5,         # 位置（默认为 Boss/Enemy 位置）
+    angle=-90,             # 角度（度）
+    speed=2.0,             # 速度
+
+    # 弹型
+    bullet_type="ball_m",  # 弹型别名
+    color="red",           # 颜色别名
+
+    # ===== v2 新参数 =====
+    tag=0,                 # 分组标签（整数，用于按组消弹/时停等）
+    friction=0.0,          # 摩擦/阻尼系数（>0 时子弹逐渐减速）
+    time_scale=1.0,        # 时间缩放（0=冻结, 0.5=半速, 1.0=正常, 2.0=加速）
+    bounce_x=False,        # 碰到左右边界反弹
+    bounce_y=False,        # 碰到上下边界反弹
+    spin=0.0,              # 贴图自转角速度（度/秒）
+    render_angle=None,     # 初始贴图朝向（度，None=跟随运动方向）
+    curve_type=0,          # 内置数学曲线（见下方常量表）
+    curve_params=None,     # 曲线参数元组 (amplitude, frequency, phase, base_value)
+)
+```
+
+### 10.2 self.fire_circle(...)
+
+圆形均匀扩散。
+
+```python
+self.fire_circle(
+    count=36,              # 弹数
     speed=2.0,
+    start_angle=0,         # 起始角度
     bullet_type="ball_m",
+    color="blue",
+    # 也支持所有 v2 参数：tag, friction, bounce_x, ...
+)
+```
+
+### 10.3 self.fire_arc(...)
+
+扇形弹幕。
+
+```python
+self.fire_arc(
+    count=7,
+    speed=2.5,
+    center_angle=-90,      # 扇形中心角度
+    arc_angle=60,          # 扇形张角
+    bullet_type="rice",
+    color="green",
+)
+```
+
+### 10.4 self.fire_at_player(...)
+
+自机狙。
+
+```python
+self.fire_at_player(
+    speed=3.0,
+    offset_angle=0,        # 偏移角度（度）
+    bullet_type="arrowhead",
     color="red",
 )
 ```
 
-这些今天可以放心用：
+### 10.5 self.fire_polar(...) / self.fire_orbit(...)
 
-- `x`
-- `y`
-- `angle`
-- `speed`
-- `bullet_type`
-- `color`
-
-### 批量发弹
-
-- `self.fire_circle(...)`
-- `self.fire_arc(...)`
-- `self.fire_at_player(...)`
-- `self.fire_polar(...)`
-- `self.fire_orbit(...)`
-
-### 极坐标运动子弹
-
-当前已经支持“相对于某个中心按极坐标运动”的子弹：
+极坐标运动子弹（围绕中心公转/螺旋）。
 
 ```python
 self.fire_polar(
-    orbit_radius=0.10,        # 初始半径
-    theta=0,                  # 初始角度（度）
-    radial_speed=0.10,        # 半径每秒增加
-    angular_velocity=180,     # 每秒旋转 180 度
+    orbit_radius=0.15,         # 初始半径
+    theta=0,                   # 初始角度（度）
+    radial_speed=0.05,         # 半径变化速率
+    angular_velocity=120,      # 角速度（度/秒）
     bullet_type="ball_s",
     color="blue",
+    center=None,               # 默认为 Boss；可传 (x,y) / 对象 / callable
+    render_mode="velocity",    # velocity / radial / inward / fixed
+    angle_offset=0,            # 贴图朝向偏移（度）
+    collision_radius=0.0,      # 碰撞半径
 )
 ```
 
-在 `SpellCard` 中默认围绕 `self.boss`。  
-在 `EnemyScript` 中默认围绕 `self`。  
-在 `Wave` 中请显式传 `center=(x, y)` 或其他中心对象。
-
-可选参数：
-
-- `render_mode="velocity"`：贴图朝向跟随实际运动方向
-- `render_mode="radial"`：贴图朝向始终从中心向外
-- `render_mode="inward"`：贴图朝向始终指向中心
-- `render_mode="fixed"`：固定角度，配合 `angle_offset`
-- `angle_offset`：贴图角度偏移（度）
-- `collision_radius`：碰撞半径
-
-### 坐标和角度
-
-坐标系是归一化坐标：
-
-- `x ≈ -1.0 ~ 1.0`
-- `y ≈ -1.0 ~ 1.0`
-- `(0, 0)` 为屏幕中心
-
-角度：
-
-- `0°` 向右
-- `90°` 向上
-- `-90°` 向下
-- `180°` 向左
-
-### 可用弹型
-
-当前文档只列出通用别名，实际映射由 `assets/bullet_aliases.json` 和 `StageContext` 共同决定。
-
-常用别名：
-
-- `ball_s`
-- `ball_m`
-- `ball_l`
-- `rice`
-- `scale`
-- `arrowhead`
-- `knife`
-- `star_s`
-- `star_m`
-- `bullet`
-- `oval`
-- `needle`
-
-常用颜色：
-
-- `red`
-- `blue`
-- `green`
-- `yellow`
-- `purple`
-- `white`
-- `darkblue`
-- `orange`
-- `cyan`
-- `pink`
-
----
-
-## 11. 当前还不能依赖的能力
-
-这部分非常重要。
-
-### 11.1 不要把 `angle_accel` 当成可用功能
-
-旧文档里曾把它写成“曲线弹”接口，但当前内容层并没有真正把它传到子弹池。
-
-所以像这种写法：
+### 10.6 消弹
 
 ```python
-self.fire(angle=0, speed=2.0, angle_accel=2.0)
+self.clear_bullets()                      # 清除本符卡/本敌人创建的子弹
+self.clear_bullets(to_items=True)         # 转为道具
+self.ctx.clear_all_bullets()              # 清屏
+self.ctx.clear_bullets_by_tag(1)          # 按标签消弹
+self.ctx.bullets_by_tag_to_item(1)        # 按标签转道具
 ```
 
-**现在不要依赖它。**
+### 10.7 时间缩放（时停 / 慢动作）
 
-### 11.2 `accel` 也不要按旧文档的写法直接用
+```python
+self.ctx.set_time_scale(0.0)              # 全部冻结
+self.ctx.set_time_scale(0.0, tag=1)       # 只冻结 tag=1 的子弹
+self.ctx.set_time_scale(1.0)              # 恢复正常
+self.ctx.set_time_scale(0.3, tag=2)       # tag=2 减速到 0.3 倍
+```
 
-旧文档把 `accel` 写成一个标量，但当前内容层并没有正确向下透传。
+### 10.8 发射器节点（Emitter）
 
-结论：
+不渲染、不碰撞的隐形移动节点，一边运动一边发弹。
 
-- 文档层先不要承诺它
-- 你要做复杂变速弹，先按“分批发射 + 阶段节奏”来设计
+```python
+def emitter_logic(pool, idx, x, y, lifetime):
+    """每帧回调"""
+    if int(lifetime * 60) % 6 == 0:
+        pool.spawn_bullet(x, y, angle=-1.57, speed=0.03, sprite_id="ball_mid1")
 
-### 11.3 激光系统暂时不要作为内容层标准能力
+self.ctx.create_emitter(
+    x=0.0, y=0.8,
+    angle=-90, speed=1.0,          # 发射器从上往下飞
+    callback=emitter_logic,
+    tag=10,                        # 可以给发射器也打标签
+    max_lifetime=3.0,              # 3 秒后自动消失
+    friction=0.5,                  # 发射器可以减速
+)
+```
 
-仓库里有激光底层实现和渲染器，但当前 `SpellCard` / `Wave` / `EnemyScript` 没有统一暴露稳定的激光 API。
+### 10.9 辅助方法
 
-结论：
-
-- 现阶段 Stage1 正式内容，优先用普通弹写
-- 真要做激光，建议先补接口，再写正式内容
-
-### 11.4 文档里出现的 `stage.json` / `boss.json` 工作流，不要继续照着写
-
-底层为了兼容仍保留了一些 JSON 加载能力，但当前项目的主流程已经转向：
-
-- `stage_script.py`
-- `BossDef`
-- `nonspell()`
-- `spellcard()`
-
-如果你继续按旧 JSON 流程写，后面最容易出现“文件是对的，但主入口根本没走到”的问题。
-
----
-
-## 12. Stage1 编写建议
-
-### 当前最适合写的复杂度
-
-这套系统目前最适合：
-
-- 圆环弹幕
-- 扇形弹幕
-- 自机狙
-- 交错频率
-- 多层发射器叠加
-- Boss 位移 + 发射相位变化
-- 小怪编队 + 不同入场轨迹
-
-### 暂时别急着写的类型
-
-- 单颗子弹中途转向
-- 单颗子弹中途分裂
-- 单颗子弹带状态机
-- 大规模持续螺旋曲线弹
-- 内容层直接脚本化激光
-
-### 推荐写法
-
-先把复杂度放在“发射器逻辑”上，而不是“子弹出生后的行为”上。
-
-例如：
-
-- 第一层：旋转圆环
-- 第二层：定时自机狙
-- 第三层：Boss 横移时追加斜向散射
-- 第四层：15 秒后提高频率或追加第二色弹
-
-这样你能稳定做出很像东方的节奏感，而且不会和当前 API 打架。
-
-### Stage1 的组织建议
-
-推荐按这个顺序推进：
-
-1. 先把整面 `StageScript` 节奏排出来
-2. 再补道中 `Wave`
-3. 再补小怪 `EnemyScript`
-4. 最后细修 `SpellCard`
-
-不要反过来一上来猛堆 Boss 符卡，不然整面节奏会很难收。
+```python
+self.angle_to_player()            # 返回到自机的角度（度）
+self.play_se("kira")              # 播放音效
+player = self.ctx.get_player()    # 获取玩家代理 (.x, .y)
+```
 
 ---
 
-## 13. 常见问题
+## 11. v2 新机制详解
 
-### Q: `await` 和 `yield` 用哪个？
+### 11.1 摩擦力 / 阻尼 (friction)
 
-默认用 `await`。
+```python
+self.fire(angle=-90, speed=5.0, friction=2.0, bullet_type="ball_m", color="red")
+```
+
+效果：子弹每帧速度乘以 `(1 - friction * dt)`，逐渐减速直到停止。
+
+| friction 值 | 效果 |
+|---|---|
+| 0 | 无摩擦（默认行为） |
+| 1.0 | 约 1 秒减速到接近 0 |
+| 3.0 | 极快减速（急停弹） |
+| 0.3 | 缓慢减速 |
+
+**用途**：减速 → 停顿 → 配合 `on_death` 做散花、制造"粘滞感"弹幕。
+
+### 11.2 反弹 (bounce_x / bounce_y)
+
+```python
+self.fire(angle=30, speed=2.5, bounce_x=True, bounce_y=True,
+          bullet_type="ball_m", color="green")
+```
+
+子弹碰到 `x ∈ [-1, 1]` 或 `y ∈ [-1, 1]` 的边界时速度分量取反。  
+反弹弹不会因为飞出屏幕而死亡（普通弹在 ±1.5 时自动消亡）。
+
+**用途**：弹球弹幕、墙壁反射。
+
+### 11.3 自转 (spin / render_angle)
+
+```python
+# 弹边飞边自转
+self.fire(angle=-90, speed=2.0, spin=360, bullet_type="star_m", color="yellow")
+
+# 固定贴图朝上，不跟运动方向
+self.fire(angle=-90, speed=2.0, render_angle=0, bullet_type="knife", color="red")
+```
+
+- `spin=N`：贴图每秒转 N 度（运动方向不变）
+- `render_angle=X`：初始贴图朝向为 X 度（且不再锁定到运动方向）
+
+**用途**：旋转星弹、固定朝向刀弹。
+
+### 11.4 标签 (tag) + 按组操作
+
+```python
+# 发弹时打标签
+self.fire(angle=-90, speed=2.0, tag=1, color="blue")
+self.fire(angle=-90, speed=2.0, tag=2, color="red")
+
+# 后续操作
+self.ctx.clear_bullets_by_tag(1)         # 只消蓝弹
+self.ctx.bullets_by_tag_to_item(2)       # 红弹变道具
+self.ctx.set_time_scale(0.0, tag=1)      # 冻结蓝弹
+```
+
+**用途**：解谜弹幕（打中开关消特定弹）、分色管理、选择性时停。
+
+### 11.5 时间缩放 (time_scale)
+
+每颗子弹拥有独立的 time_scale 乘数，影响：
+- 位置更新速度
+- 生命周期推进
+- 摩擦力衰减
+- 曲线演算
+- 自转速度
+
+```python
+# 发射一颗慢动作弹
+self.fire(angle=-90, speed=3.0, time_scale=0.3, bullet_type="ball_l", color="white")
+
+# 全局冻结（咲夜时停）
+self.ctx.set_time_scale(0.0)
+await self.wait(120)
+self.ctx.set_time_scale(1.0)
+```
+
+### 11.6 内置数学曲线 (curve_type + curve_params)
+
+在 JIT 内核内执行的高性能参数化运动。
+
+#### 常量导入
+
+```python
+from src.game.bullet import (
+    CURVE_NONE, CURVE_SIN_SPEED, CURVE_SIN_ANGLE,
+    CURVE_COS_SPEED, CURVE_LINEAR_SPEED,
+)
+```
+
+#### curve_params = (amplitude, frequency, phase, base_value)
+
+| curve_type | 效果公式 |
+|---|---|
+| `CURVE_SIN_SPEED` (1) | `speed = base + amp * sin(freq * t + phase)` |
+| `CURVE_SIN_ANGLE` (2) | `angle += amp * sin(freq * t + phase) * dt` |
+| `CURVE_COS_SPEED` (3) | `speed = base + amp * cos(freq * t + phase)` |
+| `CURVE_LINEAR_SPEED` (4) | `speed = base + amp * t` |
+
+```python
+from src.game.bullet import CURVE_SIN_SPEED
+
+# 波动速度弹：速度在 1.0 ~ 3.0 之间正弦波动
+self.fire(
+    angle=-90, speed=2.0,
+    bullet_type="rice", color="cyan",
+    curve_type=CURVE_SIN_SPEED,
+    curve_params=(1.0, 3.14, 0.0, 2.0),  # amp=1, freq=π, phase=0, base=2
+)
+```
+
+```python
+from src.game.bullet import CURVE_SIN_ANGLE
+
+# 蛇行弹：运动角度正弦摆动
+self.fire(
+    angle=-90, speed=2.0,
+    bullet_type="scale", color="green",
+    curve_type=CURVE_SIN_ANGLE,
+    curve_params=(2.0, 5.0, 0.0, 0.0),  # amp=2 rad/s, freq=5
+)
+```
+
+### 11.7 发射器节点 (Emitter)
+
+隐形、不碰撞的移动节点，每帧执行回调函数发射子弹。
+
+```python
+def spiral_emitter(pool, idx, x, y, lifetime):
+    """发射器回调：一边飞一边旋转发弹"""
+    frame = int(lifetime * 60)
+    if frame % 4 == 0:
+        angle = lifetime * 6.28  # 旋转
+        pool.spawn_bullet(x, y, angle=angle, speed=0.02, sprite_id="ball_mid1")
+
+self.ctx.create_emitter(
+    x=-0.5, y=0.8,
+    angle=-60, speed=1.5,
+    callback=spiral_emitter,
+    max_lifetime=4.0,
+)
+```
+
+> **注意**：Emitter 回调中的 `pool.spawn_bullet()` 是底层 API，angle 用弧度，speed 用归一化/帧。  
+> 如果想用度和每秒单位，需要自行转换：`angle=math.radians(deg)`, `speed=spd/60`.
+
+---
+
+## 12. 高级模式示例
+
+### 12.1 急停→散花弹
+
+```python
+import math
+
+async def run(self):
+    while True:
+        for i in range(12):
+            angle = i * 30
+            # 大弹急停
+            self.fire(
+                angle=angle, speed=4.0,
+                friction=3.0,              # 快速减速
+                bullet_type="ball_l", color="red",
+                tag=100,
+            )
+        await self.wait(40)
+
+        # 检查急停弹的生命周期，在停住后爆散 —— 用 on_death 回调更好
+        # （这里用清弹 + 重新发射的简化写法）
+        self.ctx.clear_bullets_by_tag(100)
+        # 替换为散花
+        bx, by = self.boss.x, self.boss.y
+        for i in range(36):
+            self.fire(angle=i * 10, speed=2.0,
+                      bullet_type="ball_s", color="blue")
+        await self.wait(60)
+```
+
+### 12.2 弹球弹幕
 
 ```python
 async def run(self):
-    await self.wait(30)
-    await self.boss.move_to(0, 0.5, duration=60)
+    import random
+    while True:
+        for _ in range(8):
+            a = random.uniform(0, 360)
+            self.fire(
+                angle=a, speed=2.5,
+                bounce_x=True, bounce_y=True,
+                bullet_type="ball_m", color="green",
+            )
+        await self.wait(30)
 ```
 
-只有在需要“并行推进多个动作”时，再手动推进生成器并配合 `yield`。
+### 12.3 咲夜时停
+
+```python
+async def run(self):
+    while True:
+        # 发一波高速弹
+        for i in range(24):
+            self.fire(angle=i * 15, speed=4.0,
+                      bullet_type="knife", color="blue",
+                      tag=1)
+        await self.wait(30)
+
+        # 时停
+        self.ctx.set_time_scale(0.0, tag=1)
+        await self.wait(60)
+
+        # 解冻 + 追加
+        self.ctx.set_time_scale(1.0, tag=1)
+        await self.wait(60)
+```
+
+### 12.4 旋转星弹
+
+```python
+async def run(self):
+    angle = 0
+    while True:
+        self.fire_circle(
+            count=8, speed=1.5,
+            start_angle=angle,
+            bullet_type="star_m", color="yellow",
+            spin=720,  # 每秒自转 2 圈
+        )
+        angle += 15
+        await self.wait(10)
+```
+
+### 12.5 流星雨发射器（魔理沙风格）
+
+```python
+import math, random
+
+def meteor_emitter(pool, idx, x, y, lifetime):
+    frame = int(lifetime * 60)
+    if frame % 3 == 0:
+        a = -math.pi/2 + random.uniform(-0.3, 0.3)
+        pool.spawn_bullet(x, y, angle=a, speed=0.04, sprite_id="star_small3")
+
+async def run(self):
+    while True:
+        for i in range(5):
+            self.ctx.create_emitter(
+                x=-0.8 + i * 0.4, y=1.0,
+                angle=-90, speed=0.5,
+                callback=meteor_emitter,
+                max_lifetime=3.0,
+            )
+        await self.wait(180)
+```
+
+### 12.6 正弦蛇行弹
+
+```python
+from src.game.bullet import CURVE_SIN_ANGLE
+
+async def run(self):
+    while True:
+        for i in range(12):
+            self.fire(
+                angle=-90, speed=2.0,
+                bullet_type="rice", color="cyan",
+                curve_type=CURVE_SIN_ANGLE,
+                curve_params=(3.0, 4.0, i * 0.5, 0.0),  # 每条蛇相位偏移
+            )
+        await self.wait(20)
+```
+
+### 12.7 极坐标莲花弹（扩散→收缩→散开）
+
+```python
+async def run(self):
+    while True:
+        for i in range(12):
+            self.fire_polar(
+                orbit_radius=0.05,
+                theta=i * 30,
+                radial_speed=0.15,
+                angular_velocity=60,
+                bullet_type="scale", color="purple",
+            )
+        await self.wait(120)
+```
+
+---
+
+## 13. 坐标与角度
+
+坐标系是归一化坐标：
+
+- `x ≈ -1.0 ~ 1.0`，`y ≈ -1.0 ~ 1.0`
+- `(0, 0)` 为屏幕中心
+
+角度（所有脚本层 API 统一用度）：
+
+- `0°` → 向右
+- `90°` → 向上
+- `-90°` → 向下
+- `180°` / `-180°` → 向左
+
+---
+
+## 14. 可用弹型与颜色
+
+### 弹型别名
+
+| 别名 | 说明 |
+|---|---|
+| `ball_s` | 小弹 |
+| `ball_m` | 中弹 |
+| `ball_l` | 大弹 |
+| `rice` | 米弹 |
+| `scale` | 鳞弹 |
+| `arrowhead` | 箭头弹 |
+| `knife` | 刀弹 |
+| `star_s` | 小星弹 |
+| `star_m` | 中星弹 |
+| `bullet` | 子弹型 |
+| `oval` | 椭圆弹 |
+| `needle` | 针弹 |
+
+### 颜色别名
+
+`red`, `blue`, `green`, `yellow`, `purple`, `white`, `darkblue`, `orange`, `cyan`, `pink`
+
+实际映射由 `assets/bullet_aliases.json` 定义。
+
+---
+
+## 15. 常见问题
+
+### Q: `await` 和 `yield` 用哪个？
+
+默认用 `await`。只有同一帧并行推进多个动作时用 `yield`。
 
 ### Q: 怎么清掉自己发过的弹？
 
 ```python
 self.clear_bullets()
-```
-
-或者转道具：
-
-```python
 self.clear_bullets(to_items=True)
 ```
 
-### Q: 怎么拿玩家位置？
+### Q: 怎么用 tag 做解谜弹幕？
 
 ```python
-player = self.ctx.get_player()
-px, py = player.x, player.y
+self.fire(..., tag=1, color="blue")
+self.fire(..., tag=2, color="red")
+
+# 玩家达成条件后
+self.ctx.bullets_by_tag_to_item(1)    # 蓝弹变道具
+self.ctx.clear_bullets_by_tag(2)      # 红弹消除
 ```
 
-或者直接：
+### Q: 怎么做时停？
 
 ```python
-angle = self.angle_to_player()
+self.ctx.set_time_scale(0.0)          # 全局冻结
+self.ctx.set_time_scale(0.0, tag=1)   # 只冻 tag=1
+self.ctx.set_time_scale(1.0)          # 恢复
+```
+
+### Q: Emitter 回调里怎么用高层 API？
+
+Emitter 回调直接操作底层 pool，参数用弧度和归一化速度。如果想用友好单位：
+
+```python
+import math
+pool.spawn_bullet(x, y,
+    angle=math.radians(-90),     # 角度转弧度
+    speed=2.5 / 60.0,           # 每秒速度转每帧
+    sprite_id="ball_mid1",
+)
+```
+
+### Q: curve_params 四个参数是什么含义？
+
+`(amplitude, frequency, phase, base_value)`
+
+- `amplitude`：振幅
+- `frequency`：角频率（弧度/秒）
+- `phase`：初始相位
+- `base_value`：基础值
+
+例如 `(1.0, 6.28, 0.0, 2.0)` 表示"速度 = 2.0 + 1.0 * sin(2π * t)"，即速度在 1.0~3.0 之间每秒一个周期。
+
+### Q: 如何让子弹出生后中途变色/变型？
+
+直接修改底层数据：
+
+```python
+idx = self.fire(...)
+self.ctx.bullet_pool.data['sprite_id'][idx] = "ball_mid5"  # 旧版池
+# 或
+self.ctx.bullet_pool.data['sprite_idx'][idx] = new_idx     # 优化版池
 ```
 
 ### Q: 我新增了 Stage，怎么切过去？
 
-当前默认入口在 [main.py](C:\Users\m1573\Documents\Downloads\pystg\main.py) 里直接加载 `Stage1`。  
-你新增 Stage 后，需要：
-
-1. 创建新的 `stage_script.py`
-2. 在 `main.py` 里改为加载你的新 Stage 类
-
-### Q: 现在能不能按旧文档写 `stage.json`？
-
-不建议。  
-主线开发请直接写 `stage_script.py`。
-
-### Q: 复杂弹幕以后怎么扩展？
-
-建议先把 Stage1 内容写起来；真遇到表达不了的模式，再补引擎能力。  
-优先考虑的扩展方向：
-
-- 子弹参数透传
-- 线性加速度正式打通
-- 角速度/角加速度字段
-- 统一激光 API
+在 `main.py` 里改为加载你的新 Stage 类。
 
 ---
 
-## 额外说明
+## API 速查表
 
-如果你打算继续写 Stage1，最值得参考的现成文件是：
-
-- [stage_script.py](C:\Users\m1573\Documents\Downloads\pystg\game_content\stages\stage1\stage_script.py)
-- [nonspell_1.py](C:\Users\m1573\Documents\Downloads\pystg\game_content\stages\stage1\spellcards\nonspell_1.py)
-- [spell_1.py](C:\Users\m1573\Documents\Downloads\pystg\game_content\stages\stage1\spellcards\spell_1.py)
-- [spell_2.py](C:\Users\m1573\Documents\Downloads\pystg\game_content\stages\stage1\spellcards\spell_2.py)
-- [fairy_wave.py](C:\Users\m1573\Documents\Downloads\pystg\game_content\stages\stage1\waves\fairy_wave.py)
-- [fairy.py](C:\Users\m1573\Documents\Downloads\pystg\game_content\stages\stage1\enemies\fairy.py)
-
-这几份比旧文档更能代表当前项目真实写法。
+| 方法 | 说明 | 示例 |
+|---|---|---|
+| `self.fire(...)` | 单发 | `self.fire(angle=-90, speed=2)` |
+| `self.fire_circle(...)` | 圆形 | `self.fire_circle(count=24, speed=2)` |
+| `self.fire_arc(...)` | 扇形 | `self.fire_arc(count=5, arc_angle=60)` |
+| `self.fire_at_player(...)` | 自机狙 | `self.fire_at_player(speed=3)` |
+| `self.fire_polar(...)` | 极坐标 | `self.fire_polar(orbit_radius=0.1, theta=0, angular_velocity=120)` |
+| `ctx.create_emitter(...)` | 发射器 | `ctx.create_emitter(x, y, angle, speed, callback)` |
+| `ctx.set_time_scale(s, tag)` | 时停 | `ctx.set_time_scale(0.0, tag=1)` |
+| `ctx.clear_bullets_by_tag(t)` | 标签消弹 | `ctx.clear_bullets_by_tag(1)` |
+| `ctx.bullets_by_tag_to_item(t)` | 标签转道具 | `ctx.bullets_by_tag_to_item(1)` |
+| `await self.wait(N)` | 等 N 帧 | `await self.wait(30)` |
+| `self.angle_to_player()` | 自机方向 | `angle = self.angle_to_player()` |
+| `self.play_se(name)` | 播放音效 | `self.play_se("kira")` |

@@ -43,6 +43,24 @@ class OptimizedBulletRenderer:
         # 初始化shader和缓冲区
         self._init_shader()
         self._init_buffers()
+        self._build_texture_lookup()
+        self._warned_all_batches_missed = False
+
+    def _normalize_texture_key(self, key: str) -> str:
+        return key.replace('\\', '/').lower()
+
+    def _build_texture_lookup(self):
+        """构建纹理键的兼容映射（处理斜杠/大小写差异）"""
+        self._texture_lookup: Dict[str, moderngl.Texture] = {}
+        for k, tex in self.textures.items():
+            self._texture_lookup[k] = tex
+            self._texture_lookup[self._normalize_texture_key(k)] = tex
+
+    def _resolve_texture(self, texture_path: str) -> Optional[moderngl.Texture]:
+        tex = self._texture_lookup.get(texture_path)
+        if tex is not None:
+            return tex
+        return self._texture_lookup.get(self._normalize_texture_key(texture_path))
     
     def _init_shader(self):
         """初始化着色器"""
@@ -158,11 +176,34 @@ class OptimizedBulletRenderer:
         render_batches = bullet_pool.prepare_render_data_sorted()
         
         if not render_batches:
-            return
+            return 0
         
         # 按批次渲染
+        rendered_batches = 0
+        missing_paths = []
         for batch in render_batches:
-            self._render_batch(batch)
+            if self._render_batch(batch):
+                rendered_batches += 1
+            else:
+                missing_paths.append(batch.get('texture_path', ''))
+
+        if rendered_batches == 0:
+            if not self._warned_all_batches_missed:
+                unique_missing = []
+                for p in missing_paths:
+                    if p and p not in unique_missing:
+                        unique_missing.append(p)
+                sample = ", ".join(unique_missing[:3]) if unique_missing else "<unknown>"
+                print(
+                    "[OptimizedBulletRenderer] Warning: all optimized bullet batches skipped "
+                    f"(batches={len(render_batches)}). Missing texture mappings, sample={sample}. "
+                    "Renderer will fall back to legacy path."
+                )
+                self._warned_all_batches_missed = True
+        else:
+            self._warned_all_batches_missed = False
+
+        return rendered_batches
     
     def render_from_data(self, render_data: Dict[int, Dict]):
         """
@@ -189,10 +230,10 @@ class OptimizedBulletRenderer:
     def _render_batch(self, batch: Dict):
         """渲染单个批次"""
         texture_path = batch.get('texture_path', '')
-        if texture_path not in self.textures:
-            return
+        texture = self._resolve_texture(texture_path)
+        if texture is None:
+            return False
         
-        texture = self.textures[texture_path]
         self._render_batch_data(
             texture,
             batch['positions'],
@@ -201,6 +242,7 @@ class OptimizedBulletRenderer:
             batch['scales'],
             batch['count']
         )
+        return True
     
     def _render_batch_data(
         self,

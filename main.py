@@ -25,7 +25,7 @@ from src.game.audio import GameAudioBank, AudioManager
 from src.resource.sprite import SpriteManager
 from src.core import (
     GameConfig, get_config, init_config,
-    CollisionManager, get_collision_manager
+    CollisionManager, get_collision_manager, init_sprite_registry
 )
 from src.resource.texture_asset import (
     TextureAssetManager, 
@@ -201,6 +201,22 @@ def load_resources(ctx, texture_asset_manager: TextureAssetManager):
     return textures, sprite_uv_map
 
 
+def initialize_sprite_registry_from_assets(sprite_manager: SpriteManager, textures: dict):
+    """
+    用当前已加载资产重建 SpriteRegistry，确保 OptimizedBulletPool 的 sprite_idx/UV/纹理映射正确。
+    """
+    texture_sizes = {}
+    for path, tex in textures.items():
+        texture_sizes[path] = tex.size
+        texture_sizes[path.replace('\\', '/')] = tex.size
+        texture_sizes[path.lower()] = tex.size
+        texture_sizes[path.replace('\\', '/').lower()] = tex.size
+
+    registry = init_sprite_registry(max_sprites=8192)
+    registry.register_from_sprite_manager(sprite_manager, texture_sizes)
+    print(f"SpriteRegistry 已重建: {registry.count} sprites")
+
+
 def initialize_game_objects(audio_manager=None, background_renderer=None):
     """初始化游戏对象（玩家、子弹池、关卡管理器等）"""
     player = load_player("tao")
@@ -284,6 +300,7 @@ def main():
             textures, sprite_uv_map = load_resources(ctx, texture_asset_manager)
             
             sprite_manager._sync_from_asset_manager()
+            initialize_sprite_registry_from_assets(sprite_manager, textures)
             
             renderer = Renderer(ctx, base_size, sprite_manager, textures, sprite_uv_map)
             
@@ -375,6 +392,17 @@ def main():
                 "collision": 0.0,
                 "render": 0.0,
                 "frame": 0.0,
+                "render_bg": 0.0,
+                "render_enemy": 0.0,
+                "render_item": 0.0,
+                "render_player": 0.0,
+                "render_player_sprite": 0.0,
+                "render_enemy_bullet": 0.0,
+                "render_laser": 0.0,
+                "render_hitbox": 0.0,
+                "render_ui": 0.0,
+                "render_dialog": 0.0,
+                "swap": 0.0,
             }
             profile_frames = 0
 
@@ -405,6 +433,17 @@ def main():
                     f"update={avg_ms['update']:.3f}ms "
                     f"collision={avg_ms['collision']:.3f}ms "
                     f"render={avg_ms['render']:.3f}ms "
+                    f"rbg={avg_ms['render_bg']:.3f} "
+                    f"renemy={avg_ms['render_enemy']:.3f} "
+                    f"ritem={avg_ms['render_item']:.3f} "
+                    f"rplayer={avg_ms['render_player']:.3f} "
+                    f"rps={avg_ms['render_player_sprite']:.3f} "
+                    f"rbullet={avg_ms['render_enemy_bullet']:.3f} "
+                    f"rlaser={avg_ms['render_laser']:.3f} "
+                    f"rhit={avg_ms['render_hitbox']:.3f} "
+                    f"rui={avg_ms['render_ui']:.3f} "
+                    f"rdialog={avg_ms['render_dialog']:.3f} "
+                    f"swap={avg_ms['swap']:.3f} "
                     f"fps={clock.get_fps():.1f} maxfps={clock.get_max_fps():.1f} "
                     f"bullets={bullets_alive} targets={enemy_count}"
                 )
@@ -663,22 +702,30 @@ def main():
                     enemy_scripts = stage_manager.current_context.get_enemy_scripts()
 
                 render_start = time.perf_counter() if PROFILE_MODE else 0.0
+                render_segments = {} if PROFILE_MODE else None
                 renderer.render_frame(
                     bullet_pool, player, stage_manager, laser_pool,
                     viewport_rect=game_viewport,
                     item_renderer=item_renderer,
                     item_pool=item_pool,
                     dt=0 if paused else dt,
-                    enemy_scripts=enemy_scripts
+                    enemy_scripts=enemy_scripts,
+                    profile_segments=render_segments,
                 )
                 
                 ctx.viewport = (0, 0, screen_size[0], screen_size[1])
+                ui_start = time.perf_counter() if PROFILE_MODE else 0.0
                 ui_renderer.render_hud(hud)
+                if PROFILE_MODE:
+                    profile_acc["render_ui"] += time.perf_counter() - ui_start
 
                 if stage_manager.current_stage:
                     dialog_state = stage_manager.current_stage.get_dialog_renderer()
                     if dialog_state:
+                        dialog_start = time.perf_counter() if PROFILE_MODE else 0.0
                         dialog_gl_renderer.render(dialog_state)
+                        if PROFILE_MODE:
+                            profile_acc["render_dialog"] += time.perf_counter() - dialog_start
 
                 if paused:
                     pause_menu_renderer.render(pause_menu_index)
@@ -686,8 +733,13 @@ def main():
                 hud.state.fps = round(clock.get_fps())
                 hud.state.max_fps = round(clock.get_max_fps())
 
+                swap_start = time.perf_counter() if PROFILE_MODE else 0.0
                 window.swap_buffers()
                 if PROFILE_MODE:
+                    profile_acc["swap"] += time.perf_counter() - swap_start
+                    if render_segments:
+                        for k, v in render_segments.items():
+                            profile_acc[k] += v
                     profile_acc["render"] += time.perf_counter() - render_start
                     profile_acc["frame"] += time.perf_counter() - frame_start
                     profile_frames += 1

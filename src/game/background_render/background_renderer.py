@@ -988,16 +988,10 @@ class BackgroundRenderer:
                 v2[0], v2[1], v2[2], 1, 1,
                 v3[0], v3[1], v3[2], 1, 0,
             ], dtype='f4')
-            
-            # 创建临时 VAO
-            vbo = self.ctx.buffer(vertices)
-            vao = self.ctx.vertex_array(
-                self.program_3d,
-                [(vbo, '3f 2f', 'in_vert', 'in_uv')]
-            )
-            vao.render(moderngl.TRIANGLE_FAN)
-            vbo.release()
-            vao.release()
+
+            # 复用动态3D缓冲，避免每个四边形创建/销毁VBO与VAO
+            self.vbo_3d.write(vertices.tobytes())
+            self.vao_3d.render(moderngl.TRIANGLE_FAN)
         
         self._set_blend_mode(BlendMode.NORMAL)
         
@@ -1057,16 +1051,10 @@ class BackgroundRenderer:
                 quad.v2[0], quad.v2[1], quad.v2[2], quad.uv[2], quad.uv[3],
                 quad.v3[0], quad.v3[1], quad.v3[2], quad.uv[2], quad.uv[1],
             ], dtype='f4')
-            
-            # 创建临时 VAO
-            vbo = self.ctx.buffer(vertices)
-            vao = self.ctx.vertex_array(
-                self.program_3d,
-                [(vbo, '3f 2f', 'in_vert', 'in_uv')]
-            )
-            vao.render(moderngl.TRIANGLE_FAN)
-            vbo.release()
-            vao.release()
+
+            # 复用动态3D缓冲，避免每个四边形创建/销毁VBO与VAO
+            self.vbo_3d.write(vertices.tobytes())
+            self.vao_3d.render(moderngl.TRIANGLE_FAN)
         
         self._set_blend_mode(BlendMode.NORMAL)
         
