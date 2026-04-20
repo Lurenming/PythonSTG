@@ -464,7 +464,6 @@ class Renderer:
         # 保存并切换视口到游戏区域
         prev_viewport = self.ctx.viewport
         win_w, win_h = prev_viewport[2], prev_viewport[3]
-        print(f"[DEBUG] ctx.viewport={self.ctx.viewport}, win={win_w}x{win_h}, viewport_rect={viewport_rect}")
         if viewport_rect:
             # 先清除整个窗口背景（覆盖边框区域）
             self.ctx.viewport = (0, 0, win_w, win_h)

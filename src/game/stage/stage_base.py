@@ -286,22 +286,6 @@ class StageScript:
                 text_renderer.update()
             yield
 
-    @types.coroutine
-    def run_dialogue(self, dialogue_data):
-        """
-        运行对话（兼容旧 API）
-
-        Args:
-            dialogue_data: 对话数据
-        """
-        # 兼容：如果是 DialogSequence 对象，使用旧方式
-        from .dialog_data import DialogSequence
-        if isinstance(dialogue_data, DialogSequence):
-            dialogue_list = [(s.character, s.position, s.text) for s in dialogue_data.sentences]
-            yield from self.play_dialogue(dialogue_list)
-        else:
-            yield from self.play_dialogue(dialogue_data)
-
     # ==================== 等待 API ====================
 
     @types.coroutine

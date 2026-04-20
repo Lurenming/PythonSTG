@@ -363,20 +363,39 @@ def main():
             sys.exit(0)
         
         while True:
+            # ===== 先创建加载画面渲染器（不依赖任何纹理资源） =====
+            loading_renderer = LoadingScreenRenderer(ctx, screen_size[0], screen_size[1])
+
+            def _show_loading(hint: str, progress: float | None = None):
+                """立即渲染一帧加载画面，避免 UI 卡死感。"""
+                info = {"stage_name": "Loading", "hint": hint}
+                if progress is not None:
+                    info["progress"] = progress
+                window.poll_events()
+                ctx.viewport = (0, 0, screen_size[0], screen_size[1])
+                ctx.clear(0.0, 0.0, 0.0)
+                loading_renderer.render(info)
+                window.swap_buffers()
+
+            _show_loading("Loading textures...", 0.05)
             texture_asset_manager = init_texture_asset_manager(asset_root="assets")
-        
+
+            _show_loading("Loading laser config...", 0.15)
             laser_tex_data = get_laser_texture_data()
             laser_tex_data.load_config("assets/images/laser/laser_config.json")
-            
+
             sprite_manager = SpriteManager()
-            
+
+            _show_loading("Uploading GPU textures...", 0.25)
             textures, sprite_uv_map = load_resources(ctx, texture_asset_manager)
-            
+
+            _show_loading("Registering sprites...", 0.50)
             sprite_manager._sync_from_asset_manager()
             initialize_sprite_registry_from_assets(sprite_manager, textures)
-            
+
             renderer = Renderer(ctx, base_size, sprite_manager, textures, sprite_uv_map)
-            
+
+            _show_loading("Loading fonts...", 0.60)
             font_manager = get_font_manager()
             font_manager.load_font('score', 'assets/images/ui/font/score.fnt')
             
@@ -404,38 +423,42 @@ def main():
                       layout_override=layout_override)
             ui_renderer = UIRenderer(ctx, screen_width=screen_size[0], screen_height=screen_size[1])
 
+            _show_loading("Initializing UI...", 0.68)
             dialog_gl_renderer = DialogGLRenderer(ctx, screen_size[0], screen_size[1], game_viewport)
-
-            loading_renderer = LoadingScreenRenderer(ctx, screen_size[0], screen_size[1])
             pause_menu_renderer = PauseMenuRenderer(ctx, screen_size[0], screen_size[1])
 
             item_renderer = ItemRenderer(ctx, base_size)
             item_renderer.load_texture("assets/images/item/item.png")
-            
+
+            _show_loading("Loading backgrounds...", 0.75)
             background_renderer = None
             try:
                 from src.game.background_render import BackgroundRenderer
-                
+
                 background_renderer = BackgroundRenderer(ctx, base_size)
-                
+
                 background_renderer.load_background('lake')
-                
+
                 renderer.set_background_renderer(background_renderer)
                 print("背景系统初始化成功")
             except Exception as e:
                 print(f"背景系统初始化失败（可选功能）: {e}")
                 import traceback
                 traceback.print_exc()
-            
+
+            _show_loading("Loading audio...", 0.88)
             game_audio = GameAudioBank()
             game_audio.load_defaults()
             audio_manager = AudioManager(game_audio)
-            
+
+            _show_loading("Initializing stage...", 0.95)
             player, bullet_pool, laser_pool, item_pool, stage_manager = initialize_game_objects(
                 stage_class=selected_stage_class,
                 audio_manager=audio_manager,
                 background_renderer=background_renderer
             )
+
+            _show_loading("Ready.", 1.0)
 
             # ===== Debug: 显示 GUI 跳转菜单 =====
             if DEBUG_MODE:

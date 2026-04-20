@@ -61,8 +61,8 @@ class PlayerConfig:
     default_graze_radius: float = 0.05
     default_speed_high: float = 0.02
     default_speed_low: float = 0.008
-    default_lives: int = 3
-    default_bombs: int = 3
+    default_lives: int = 2
+    default_bombs: int = 2
     default_power: float = 1.0
     max_power: float = 4.0
     invincible_duration: float = 3.0

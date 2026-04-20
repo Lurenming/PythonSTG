@@ -21,8 +21,10 @@ class GameState:
     """游戏状态数据类"""
     score: int = 0
     hiscore: int = 0
-    lives: int = 3
-    bombs: int = 3
+    lives: int = 2
+    bombs: int = 2
+    max_lives: int = 8
+    max_bombs: int = 8
     power: float = 1.0
     max_power: float = 4.0
     graze: int = 0
@@ -97,7 +99,6 @@ class HUD:
         # 游戏状态
         self.state = GameState()
         
-        # HUD布局配置（像素坐标，原点在左上角）
         self.layout = layout_override if layout_override else {
             # 分数区域
             'hiscore_label': (10, 10),
@@ -108,21 +109,23 @@ class HUD:
             # 资源区域
             'player_label': (10, 70),
             'player_icons': (80, 70),
-            'bomb_label': (200, 70),
-            'bomb_icons': (260, 70),
+            
+            # 炸弹/道具区域
+            'bomb_label': (10, 95),
+            'bomb_icons': (80, 95),
             
             # Power区域
-            'power_label': (10, 95),
-            'power_value': (80, 95),
-            'power_bar': (160, 95),
+            'power_label': (10, 120),
+            'power_value': (80, 120),
+            'power_bar': (160, 120),
             'power_bar_width': 100,
             'power_bar_height': 12,
             
             # Graze和Point
-            'graze_label': (10, 120),
-            'graze_value': (70, 120),
-            'point_label': (160, 120),
-            'point_value': (220, 120),
+            'graze_label': (10, 145),
+            'graze_value': (70, 145),
+            'point_label': (160, 145),
+            'point_value': (220, 145),
             
             # Boss区域（屏幕顶部）
             'boss_hp_bar': (20, 5),
@@ -279,8 +282,8 @@ class HUD:
             'scale': self.small_font_scale,
             'color': (255, 128, 128)
         })
-        # 生命图标用星号表示
-        life_text = '*' * self.state.lives + '.' * (5 - self.state.lives)
+        # 生命图标用星号表示，空心用小写字母o表示
+        life_text = '*' * self.state.lives + 'o' * max(0, self.state.max_lives - self.state.lives)
         elements.append({
             'type': 'text',
             'text': life_text,
@@ -301,7 +304,7 @@ class HUD:
             'scale': self.small_font_scale,
             'color': (128, 255, 128)
         })
-        bomb_text = '*' * self.state.bombs + '.' * (5 - self.state.bombs)
+        bomb_text = '*' * self.state.bombs + 'o' * max(0, self.state.max_bombs - self.state.bombs)
         elements.append({
             'type': 'text',
             'text': bomb_text,

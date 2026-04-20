@@ -461,6 +461,7 @@ class PlayerBase(Entity):
             if self.on_death:
                 self.on_death()
         else:
+            self.animation.play_death_animation()
             self.invincible_timer = 3.0
             self.pos = np.array([0.0, -0.8], dtype='f4')
             self.power = max(1.0, self.power - 1.0)

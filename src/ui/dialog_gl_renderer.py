@@ -18,7 +18,6 @@ import moderngl
 import numpy as np
 import os
 from typing import Dict, Tuple, Optional, Any
-from PIL import ImageEnhance
 
 from ..core.image_loader import SoftwareSurface, FontRenderer, load_image_surface
 
@@ -71,15 +70,21 @@ class DialogGLRenderer:
 
         # Character portrait assets
         self._character_portraits = {}  # {"CharName/portrait": SoftwareSurface}
+        self._character_portrait_textures: Dict[str, moderngl.Texture] = {}
         self._portrait_configs = {}      # {"CharName": config dict}
         self._portrait_layout = self._load_portrait_layout()
-        self._portrait_effect_cache: Dict[Tuple[Any, ...], SoftwareSurface] = {}
-        self._load_character_portraits()
+
+        # 渐变背景缓存（静态，不随每帧变化）
+        self._gradient_arr: Optional[np.ndarray] = None
+        self._gradient_image_cache = None  # PIL.Image，每帧复制一份再叠文字
 
         # GL 资源
         self._init_shader()
         self._dialog_texture = None
         self._portrait_texture = None
+
+        # 延迟到 shader 初始化之后再加载立绘（需要 GL texture 上传）
+        self._load_character_portraits()
 
     def _load_portrait_layout(self) -> Dict[str, Any]:
         gx, gy, gw, gh = self.game_viewport
@@ -139,13 +144,18 @@ class DialogGLRenderer:
         #version 330
 
         uniform sampler2D u_texture;
+        uniform float u_saturation;
+        uniform float u_alpha;
 
         in vec2 v_uv;
 
         out vec4 f_color;
 
         void main() {
-            f_color = texture(u_texture, v_uv);
+            vec4 c = texture(u_texture, v_uv);
+            float gray = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+            vec3 rgb = mix(vec3(gray), c.rgb, u_saturation);
+            f_color = vec4(rgb, c.a * u_alpha);
         }
         """
 
@@ -155,6 +165,8 @@ class DialogGLRenderer:
         )
         self.program['u_texture'].value = 0
         self.program['u_screen_size'].value = (float(self.screen_width), float(self.screen_height))
+        self.program['u_saturation'].value = 1.0
+        self.program['u_alpha'].value = 1.0
 
         # 顶点缓冲区（6 vertices * 4 floats * 4 bytes）
         self.vbo = self.ctx.buffer(reserve=6 * 4 * 4)
@@ -215,22 +227,23 @@ class DialogGLRenderer:
         box_h = 230
         box_x = gx
         box_y = gy + gh - box_h
+        
+        fade_rows = max(1, int(box_h * 0.4))
 
-        # 构建渐变 RGBA 数组
-        arr = np.zeros((box_h, box_w, 4), dtype=np.uint8)
-        arr[:, :, 0] = 4
-        arr[:, :, 1] = 4
-        arr[:, :, 2] = 16  # 极深蓝黑色
+        # 静态渐变只算一次，之后每帧复制
+        if self._gradient_image_cache is None or self._gradient_image_cache.size != (box_w, box_h):
+            arr = np.zeros((box_h, box_w, 4), dtype=np.uint8)
+            arr[:, :, 0] = 4
+            arr[:, :, 1] = 4
+            arr[:, :, 2] = 16
+            row_idx = np.arange(box_h, dtype=np.float32)
+            fade_ratio = np.clip(row_idx / fade_rows, 0.0, 1.0)
+            alpha_col = (210.0 * (fade_ratio ** 1.6)).astype(np.uint8)
+            alpha_col[fade_rows:] = 210
+            arr[:, :, 3] = alpha_col[:, None]
+            self._gradient_image_cache = _PILImage.fromarray(arr, 'RGBA')
 
-        # Alpha：上方 40% 线性淡入，下方 60% 固定 210
-        fade_rows = int(box_h * 0.4)
-        for row in range(box_h):
-            if row < fade_rows:
-                arr[row, :, 3] = int(210 * (row / fade_rows) ** 1.6)
-            else:
-                arr[row, :, 3] = 210
-
-        surface = SoftwareSurface(_PILImage.fromarray(arr, 'RGBA'))
+        surface = SoftwareSurface(self._gradient_image_cache.copy())
 
         # 文字起始 Y（从渐变开始有一定不透明度的位置算起）
         pad_left = 24
@@ -394,13 +407,15 @@ class DialogGLRenderer:
         requested_key = slot_entry.get("portrait", "normal") or "normal"
         portrait_id = f"{char_id}/{requested_key}"
         portrait_surface = self._character_portraits.get(portrait_id)
+        portrait_tex = self._character_portrait_textures.get(portrait_id)
         portrait_info = config.get("portraits", {}).get(requested_key, {})
-        if not portrait_surface:
+        if not portrait_surface or not portrait_tex:
             default_key = config.get("default_portrait", "normal")
             portrait_id = f"{char_id}/{default_key}"
             portrait_surface = self._character_portraits.get(portrait_id)
+            portrait_tex = self._character_portrait_textures.get(portrait_id)
             portrait_info = config.get("portraits", {}).get(default_key, {})
-            if not portrait_surface:
+            if not portrait_surface or not portrait_tex:
                 return  # 该角色确实没有立绘文件，静默跳过
 
         sentence_scale = float(slot_entry.get("portrait_scale", 1.0) or 1.0)
@@ -422,15 +437,7 @@ class DialogGLRenderer:
             saturation = max(0.0, float(focus_cfg.get("inactive_saturation", 0.35)))
             lift_px = int(focus_cfg.get("inactive_lift_px", 0))
 
-        processed = self._prepare_portrait_surface(
-            portrait_id=portrait_id,
-            base_surface=portrait_surface,
-            target_size=(target_w, target_h),
-            saturation=saturation,
-            alpha=alpha,
-        )
-        pw, ph = processed.get_size()
-
+        pw, ph = target_w, target_h
         px_override = slot_entry.get("portrait_x")
         py_override = slot_entry.get("portrait_y")
         if px_override is not None and py_override is not None:
@@ -442,7 +449,7 @@ class DialogGLRenderer:
             px = int(slot_anchor[0] - ax * pw)
             py = int(slot_anchor[1] - ay * ph - lift_px)
 
-        self._draw_portrait_surface(processed, px, py)
+        self._draw_portrait_gl(portrait_tex, px, py, pw, ph, saturation, alpha)
 
     def _resolve_slot_anchor(self, position: str, config: Dict[str, Any]) -> Tuple[int, int]:
         gx, gy, gw, gh = self.game_viewport
@@ -479,61 +486,17 @@ class DialogGLRenderer:
             ay = ay / max(1.0, float(height))
         return self._clamp01(ax), self._clamp01(ay)
 
-    def _prepare_portrait_surface(
+    def _draw_portrait_gl(
         self,
-        portrait_id: str,
-        base_surface: SoftwareSurface,
-        target_size: Tuple[int, int],
+        texture: moderngl.Texture,
+        px: int,
+        py: int,
+        pw: int,
+        ph: int,
         saturation: float,
         alpha: float,
-    ) -> SoftwareSurface:
-        cache_key = (
-            portrait_id,
-            target_size[0],
-            target_size[1],
-            int(saturation * 1000),
-            int(alpha * 1000),
-        )
-        cached = self._portrait_effect_cache.get(cache_key)
-        if cached is not None:
-            return cached
-
-        src_w, src_h = base_surface.get_size()
-        if (src_w, src_h) == target_size:
-            surface = base_surface
-        else:
-            surface = SoftwareSurface.smoothscale(base_surface, target_size)
-
-        needs_effect = abs(saturation - 1.0) > 1e-4 or abs(alpha - 1.0) > 1e-4
-        if needs_effect:
-            img = surface._image.copy()
-            if abs(saturation - 1.0) > 1e-4:
-                img = ImageEnhance.Color(img).enhance(saturation)
-            if abs(alpha - 1.0) > 1e-4:
-                alpha_band = img.split()[3]
-                alpha_band = alpha_band.point(lambda p: int(max(0, min(255, p * alpha))))
-                img.putalpha(alpha_band)
-            surface = SoftwareSurface(img)
-
-        if len(self._portrait_effect_cache) > 256:
-            self._portrait_effect_cache.clear()
-        self._portrait_effect_cache[cache_key] = surface
-        return surface
-
-    def _draw_portrait_surface(self, portrait_surface: SoftwareSurface, px: int, py: int):
-        pw, ph = portrait_surface.get_size()
-        data = portrait_surface.to_bytes("RGBA", flip_y=True)
-        if self._portrait_texture is not None:
-            if self._portrait_texture.size == (pw, ph):
-                self._portrait_texture.write(data)
-            else:
-                self._portrait_texture.release()
-                self._portrait_texture = self.ctx.texture((pw, ph), 4, data)
-                self._portrait_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
-        else:
-            self._portrait_texture = self.ctx.texture((pw, ph), 4, data)
-            self._portrait_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
-
+    ):
+        """GPU 路径：饱和度/透明度由片段着色器处理，零 CPU 图像操作。"""
         x0 = float(px)
         y0 = float(py)
         x1 = float(px + pw)
@@ -548,8 +511,14 @@ class DialogGLRenderer:
             x1, y1, 1.0, 0.0,
         ], dtype='f4')
         self.vbo.write(vertices.tobytes())
-        self._portrait_texture.use(0)
+
+        self.program['u_saturation'].value = float(saturation)
+        self.program['u_alpha'].value = float(alpha)
+        texture.use(0)
         self.vao.render(moderngl.TRIANGLES)
+        # 恢复默认，避免污染后续 dialog/其他 quad 的渲染
+        self.program['u_saturation'].value = 1.0
+        self.program['u_alpha'].value = 1.0
 
     @staticmethod
     def _clamp01(v: float) -> float:
@@ -612,7 +581,19 @@ class DialogGLRenderer:
                     full_path = os.path.join(char_dir, file_path)
                     if os.path.exists(full_path):
                         img = load_image_surface(full_path)
-                        self._character_portraits[f"{char_name}/{portrait_key}"] = img
+                        portrait_id = f"{char_name}/{portrait_key}"
+                        self._character_portraits[portrait_id] = img
+                        # 上传为 GL texture，一次性完成；之后切换只是改 uniform
+                        try:
+                            w, h = img.get_size()
+                            data = img.to_bytes("RGBA", flip_y=True)
+                            tex = self.ctx.texture((w, h), 4, data)
+                            tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
+                            tex.build_mipmaps()
+                            tex.filter = (moderngl.LINEAR_MIPMAP_LINEAR, moderngl.LINEAR)
+                            self._character_portrait_textures[portrait_id] = tex
+                        except Exception as e:
+                            print(f"[DialogGLRenderer] Failed to upload portrait texture {portrait_id}: {e}")
             except Exception as e:
                 print(f"[DialogGLRenderer] Failed to load character {char_name}: {e}")
 
@@ -780,3 +761,9 @@ class DialogGLRenderer:
         if self._portrait_texture:
             self._portrait_texture.release()
             self._portrait_texture = None
+        for tex in self._character_portrait_textures.values():
+            try:
+                tex.release()
+            except Exception:
+                pass
+        self._character_portrait_textures.clear()

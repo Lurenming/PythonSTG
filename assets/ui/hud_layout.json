@@ -13,20 +13,22 @@
     "score_value": [140, 40],
 
     "player_label": [10, 80],
-    "player_icons": [100, 80],
-    "bomb_label": [180, 80],
-    "bomb_icons": [240, 80],
+    "player_icons": [90, 80],
 
-    "power_label": [10, 110],
-    "power_value": [100, 110],
-    "power_bar": [10, 135],
+    "bomb_label": [10, 110],
+    "bomb_icons": [90, 110],
+
+    "power_label": [10, 140],
+    "power_value": [90, 140],
+    "power_bar": [10, 165],
     "power_bar_width": 200,
     "power_bar_height": 12,
 
-    "graze_label": [10, 165],
-    "graze_value": [80, 165],
-    "point_label": [150, 165],
-    "point_value": [220, 165],
+    "graze_label": [10, 195],
+    "graze_value": [80, 195],
+
+    "point_label": [150, 195],
+    "point_value": [220, 195],
 
     "boss_hp_bar": [20, 5],
     "boss_hp_bar_width": 344,

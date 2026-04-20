@@ -111,6 +111,10 @@ python main.py --stage=asset_preview
 
 # 查看当前可用的小怪预设与子弹别名
 python tools/stage/list_combat_assets.py
+
+# 生成子弹/敌人图片画廊（HTML）
+python tools/asset/generate_combat_gallery.py
+# 生成后打开 docs/combat_assets_gallery.html
 ```
 
 如果环境里出现 `Numba needs NumPy 2.0 or less` 一类错误，请使用与 `Numba` 兼容的 `numpy<2` 环境。

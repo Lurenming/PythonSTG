@@ -85,8 +85,10 @@ class GameStats:
     hiscore: int = 0
     power: int = 100  # 100 = 1.00 power
     max_power: int = 400
-    lives: int = 3
-    bombs: int = 3
+    lives: int = 2
+    max_lives: int = 8
+    bombs: int = 2
+    max_bombs: int = 8
     graze: int = 0
     life_chips: int = 0
     bomb_chips: int = 0
@@ -537,7 +539,8 @@ class ItemPool:
             stats.life_chips += 1
             if stats.life_chips >= self.config.life_chip_max:
                 stats.life_chips = 0
-                stats.lives += 1
+                if stats.lives < stats.max_lives:
+                    stats.lives += 1
                 if self.on_extend:
                     self.on_extend()
 
@@ -545,17 +548,20 @@ class ItemPool:
             stats.bomb_chips += 1
             if stats.bomb_chips >= self.config.bomb_chip_max:
                 stats.bomb_chips = 0
-                stats.bombs += 1
+                if stats.bombs < stats.max_bombs:
+                    stats.bombs += 1
                 if self.on_bomb_get:
                     self.on_bomb_get()
 
         elif t == ItemType.EXTEND:
-            stats.lives += 1
+            if stats.lives < stats.max_lives:
+                stats.lives += 1
             if self.on_extend:
                 self.on_extend()
 
         elif t == ItemType.BOMB:
-            stats.bombs += 1
+            if stats.bombs < stats.max_bombs:
+                stats.bombs += 1
             if self.on_bomb_get:
                 self.on_bomb_get()
 

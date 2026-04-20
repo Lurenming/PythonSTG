@@ -51,10 +51,10 @@ class Stage1(StageScript):
         await self.play_dialogue([
             {"character": "Luna_Child",    "name": "露娜？CUP？？", "position": "left",  "text": "“厚积薄发、开物成务”，我在说什么东西啊？", "portrait": "Happy"},
             {"character": "Star_Sapphire", "name": "斯塔？GBGBG?", "position": "right", "text": "“艰苦朴素、求真务实”，哦对了，北地人形", "portrait": "Happy"},
-            {"character": "Sunny_Milk",    "name": "桑尼？M&Tb？", "position": "left", "text": "“好学力行”？哦对了，力学系你****了", "portrait": "anger"},
-            {"character": "Luna_Child",    "name": "月之儿童", "position": "left",  "text": "我在左边牵制，你们两个从右边压上来。"},
-            {"character": "Star_Sapphire", "name": "星之蓝宝石", "position": "right", "text": "明白，等你信号一到，我就把弹幕铺满天空。", "portrait": "Very_Happy"},
-            {"character": "Sunny_Milk",    "name": "太阳之牛奶", "position": "right", "text": "那就开场吧，让她知道三月精可不是好惹的！"},
+            {"character": "Sunny_Milk",    "name": "桑尼？M&Tb？", "position": "left", "text": "“好学力行”？喜欢沙河被你发现", "portrait": "Anger"},
+            {"character": "Hinanawi_Tenshi",    "name": "天子", "position": "left",  "text": "？这是什么鬼东西？", "portrait": "sad"},
+            {"character": "Kaenbyou_Rin", "name": "猫燐", "position": "right", "text": "他们说得都是我的台词啊", "portrait": "Happy"},
+            {"character": "Toutetu_Yuma",    "name": "饕餮", "position": "right", "text": "我不懂啊，上去看看吧", "portrait": "Happy"},
         ])
 
         await self.wait(60)
