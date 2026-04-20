@@ -2,53 +2,88 @@
   "__character_name": "Luna Child（月之儿童）",
   "__description": "立绘配置",
   "__source_folder": "Luna_Child",
-
   "portraits": {
     "Normal": {
       "file": "Luna_Child/Normal.jpg",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "普通"
     },
     "Anger": {
       "file": "Luna_Child/Anger.jpg",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "愤怒"
     },
     "Happy": {
       "file": "Luna_Child/Happy.jpg",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "开心"
     },
     "Sad": {
       "file": "Luna_Child/Sad.jpg",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "悲伤"
     },
     "Fail_Happy": {
       "file": "Luna_Child/Fail_Happy.jpg",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "失败开心"
     },
     "Fail_sad": {
       "file": "Luna_Child/Fail_sad.jpg",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "失败悲伤"
     }
   },
-
-  "base_scale": 1.0,
+  "base_scale": 0.195,
   "default_portrait": "Happy",
-  "default_position": "left"
+  "default_position": "left",
+  "display_name": "Luna Child"
 }

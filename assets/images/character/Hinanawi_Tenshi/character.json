@@ -3,19 +3,6 @@
   "__description": "自机角色立绘配置",
   "__source_folder": "Hinanawi_Tenshi",
   "portraits": {
-    "normal": {
-      "file": "Hinanawi_Tenshi/normal.png",
-      "center": [
-        0.5,
-        0.5
-      ],
-      "anchor": [
-        0.5,
-        0.95
-      ],
-      "scale": 1.0,
-      "description": "普通表情"
-    },
     "Happy": {
       "file": "Hinanawi_Tenshi/Happy.png",
       "center": [
@@ -69,7 +56,8 @@
       "description": "悲伤"
     }
   },
-  "base_scale": 0.359,
+  "base_scale": 0.28,
   "default_portrait": "Happy",
-  "default_position": "left"
+  "default_position": "left",
+  "display_name": "天子"
 }

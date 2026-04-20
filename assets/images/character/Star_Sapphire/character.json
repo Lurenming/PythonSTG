@@ -2,60 +2,101 @@
   "__character_name": "Star Sapphire（星之蓝宝石）",
   "__description": "立绘配置",
   "__source_folder": "Star_Sapphire",
-
   "portraits": {
     "Anger": {
       "file": "Star_Sapphire/Anger.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "愤怒"
     },
     "Happy": {
       "file": "Star_Sapphire/Happy.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "开心"
     },
     "Sad": {
       "file": "Star_Sapphire/Sad.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "悲伤"
     },
     "Very_Happy": {
       "file": "Star_Sapphire/Very_Happy.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "非常开心"
     },
     "embarrass": {
       "file": "Star_Sapphire/embarrass.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "尴尬"
     },
     "Fail_sad": {
       "file": "Star_Sapphire/Fail_sad.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "失败悲伤"
     },
     "Fail_wtf": {
       "file": "Star_Sapphire/Fail_wtf.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "失败无语"
     }
   },
-
-  "base_scale": 1.0,
+  "base_scale": 0.164,
   "default_portrait": "Happy",
-  "default_position": "left"
+  "default_position": "left",
+  "display_name": "Star Sapphire"
 }

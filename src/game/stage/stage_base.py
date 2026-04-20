@@ -179,6 +179,11 @@ class StageScript:
 
         # 从 BossDef 创建 Boss 实例
         boss = BossBase.create(boss_def, self.ctx)
+        try:
+            from src.resource.texture_asset import get_texture_asset_manager
+            boss.setup_render_obj(get_texture_asset_manager())
+        except Exception:
+            pass
         self._current_boss = boss
 
         # Debug: 从指定阶段开始

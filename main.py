@@ -42,11 +42,37 @@ from src.ui.main_menu_layout import load_layout as load_main_menu_layout
 from src.ui.hud import load_hud_layout
 from src.ui.bitmap_font import get_font_manager
 from game_content.stages.stage1.stage_script import Stage1
+from game_content.stages.stage1.stage_asset_preview import Stage1AssetPreview
 
 # ===== Debug 模式 =====
 DEBUG_MODE = "--debug" in sys.argv
 PROFILE_MODE = "--profile" in sys.argv
 PROFILE_REPORT_FRAMES = 120
+
+
+def _get_cli_option(prefix: str):
+    """读取形如 --key=value 的命令行参数。"""
+    for arg in sys.argv[1:]:
+        if arg.startswith(prefix):
+            return arg.split("=", 1)[1].strip()
+    return None
+
+
+def resolve_stage_class():
+    """根据 --stage 参数解析要加载的关卡类。"""
+    stage_arg = (_get_cli_option("--stage=") or "stage1").strip().lower()
+    stage_map = {
+        "stage1": Stage1,
+        "asset_preview": Stage1AssetPreview,
+        "preview": Stage1AssetPreview,
+        "assets": Stage1AssetPreview,
+    }
+    stage_class = stage_map.get(stage_arg)
+    if stage_class is None:
+        print(f"[main] 未识别的 --stage={stage_arg}，回退到 stage1")
+        return Stage1
+    print(f"[main] 当前关卡: {stage_class.__name__} (--stage={stage_arg})")
+    return stage_class
 
 
 def build_debug_menu(stage_class):
@@ -263,7 +289,7 @@ def initialize_sprite_registry_from_assets(sprite_manager: SpriteManager, textur
     print(f"SpriteRegistry 已重建: {registry.count} sprites")
 
 
-def initialize_game_objects(audio_manager=None, background_renderer=None):
+def initialize_game_objects(stage_class, audio_manager=None, background_renderer=None):
     """初始化游戏对象（玩家、子弹池、关卡管理器等）"""
     player = load_player("tao")
     print(f"已加载玩家: {player.name}")
@@ -283,7 +309,7 @@ def initialize_game_objects(audio_manager=None, background_renderer=None):
         item_pool=item_pool,
     )
 
-    stage_manager.load_stage(Stage1)
+    stage_manager.load_stage(stage_class)
 
     return player, bullet_pool, laser_pool, item_pool, stage_manager
 
@@ -329,6 +355,7 @@ def run_main_menu(window, ctx, screen_size) -> bool:
 def main():
     """游戏主函数"""
     window, ctx, base_size, screen_size, game_viewport = initialize_window_and_context()
+    selected_stage_class = resolve_stage_class()
 
     while True:
         if not run_main_menu(window, ctx, screen_size):
@@ -405,13 +432,14 @@ def main():
             audio_manager = AudioManager(game_audio)
             
             player, bullet_pool, laser_pool, item_pool, stage_manager = initialize_game_objects(
+                stage_class=selected_stage_class,
                 audio_manager=audio_manager,
                 background_renderer=background_renderer
             )
 
             # ===== Debug: 显示 GUI 跳转菜单 =====
             if DEBUG_MODE:
-                debug_target = run_debug_menu(window, ctx, screen_size, Stage1)
+                debug_target = run_debug_menu(window, ctx, screen_size, selected_stage_class)
                 if debug_target:
                     stage_manager.debug_skip_to = debug_target
 

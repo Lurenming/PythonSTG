@@ -60,6 +60,8 @@ class BossBase:
         # 动画/渲染相关
         self.texture: str = ""
         self.animations: Dict[str, Any] = {}
+        self._render_obj = None   # EnemyRenderObject，由 setup_render_obj() 初始化
+        self._prev_x: float = 0.0
         
         # ===== 积分系统 =====
         self._spell_bonus: int = 0         # 当前符卡 bonus（逐帧衰减）
@@ -187,11 +189,29 @@ class BossBase:
         print(f"[Boss] 未找到符卡类: {script_path}")
         return None
     
+    def setup_render_obj(self, asset_manager) -> None:
+        """初始化贴图渲染对象（在 asset_manager 加载完成后调用）"""
+        if not self.texture:
+            return
+        from .enemy_render import EnemyRenderObject
+        self._render_obj = EnemyRenderObject(self.texture, asset_manager)
+
+    def get_render_frame(self):
+        """供 renderer 调用，返回 (SpriteFrame, texture_path) 或 (None, None)"""
+        if self._render_obj is None:
+            return None, None
+        return self._render_obj.get_current_frame()
+
     def update(self):
         """每帧更新"""
         if not self._active:
             return
         
+        if self._render_obj is not None:
+            vx = self.x - self._prev_x
+            self._render_obj.update(vx=vx, dt=1 / 60.0)
+        self._prev_x = self.x
+
         if self.current_spellcard:
             # 逐帧衰减符卡 bonus（从 max 线性衰减到 base = max/2）
             phase = self.phases[self.current_phase_index]

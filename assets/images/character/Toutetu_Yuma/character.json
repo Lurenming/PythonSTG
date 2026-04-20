@@ -2,39 +2,61 @@
   "__character_name": "Toutetu Yuma（斗天 悠真）",
   "__description": "立绘配置",
   "__source_folder": "Toutetu_Yuma",
-
   "portraits": {
     "Happy": {
       "file": "Toutetu_Yuma/Happy.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "开心"
     },
     "Sad": {
       "file": "Toutetu_Yuma/Sad.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "悲伤"
     },
     "VeryHappy": {
       "file": "Toutetu_Yuma/VeryHappy.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "非常开心"
     },
     "anger": {
       "file": "Toutetu_Yuma/anger.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
       "scale": 1.0,
       "description": "愤怒"
     }
   },
-
-  "base_scale": 1.0,
+  "base_scale": 0.38,
   "default_portrait": "Happy",
   "default_position": "right"
 }

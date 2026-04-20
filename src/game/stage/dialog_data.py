@@ -17,8 +17,9 @@ class DialogSentence:
     参照 LuaSTG boss.dialog:sentence() 参数
     """
     text: str                                    # 对话文本
-    character: Optional[str] = None              # 角色ID（如 "Tenshi", "Utsuho"）
-    portrait: Optional[str] = "normal"           # 立绘key（如 "normal", "angry"）
+    character: Optional[str] = None              # 角色ID（文件夹名，如 "Hinanawi_Tenshi"）
+    name: Optional[str] = None                   # 对话框显示名，None 则用 character.json 的 display_name
+    portrait: Optional[str] = "normal"           # 立绘key（如 "Happy", "anger"）
     position: Literal["left", "right"] = "left"  # 立绘位置
     balloon_style: int = 1                       # 气泡样式（1-8）
     duration: Optional[int] = None               # 显示时长（帧），None=自动计算

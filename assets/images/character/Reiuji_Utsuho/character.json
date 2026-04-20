@@ -2,18 +2,9 @@
   "__character_name": "Reiuji Utsuho（灵乌路 空）",
   "__description": "立绘配置（暂无图片，使用默认占位符）",
   "__source_folder": "Reiuji_Utsuho",
-
-  "portraits": {
-    "normal": {
-      "file": "Reiuji_Utsuho/normal.png",
-      "center": [0.5, 0.5],
-      "anchor": [0.5, 0.95],
-      "scale": 1.0,
-      "description": "普通表情"
-    }
-  },
-
+  "portraits": {},
   "base_scale": 1.0,
   "default_portrait": "normal",
-  "default_position": "right"
+  "default_position": "right",
+  "display_name": "灵乌路空"
 }

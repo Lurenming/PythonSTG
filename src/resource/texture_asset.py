@@ -438,6 +438,9 @@ class TextureAssetManager:
                     center=default_center
                 ))
         
+        fps = data.get('fps')
+        frame_duration = data.get('frame_duration', 1.0 / fps if fps else 0.1)
+
         return AnimatedSprite(
             name=name,
             texture_path=texture_path,
@@ -445,7 +448,7 @@ class TextureAssetManager:
             center=default_center,
             radius=data.get('radius', 0.0),
             rotate=data.get('rotate', False),
-            frame_duration=data.get('frame_duration', 0.1),
+            frame_duration=frame_duration,
             loop=data.get('loop', True),
             metadata=data.get('metadata', {})
         )

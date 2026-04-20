@@ -49,8 +49,8 @@ class DialogGLRenderer:
         self._quad_rect = (self.box_x, self.box_y, self.box_width, self.box_height)
 
         # Default balloon positions in game viewport coordinates
-        self._balloon_default_left = (280, 880)
-        self._balloon_default_right = (880, 880)
+        self._balloon_default_left = (gw // 4, gh - 40)
+        self._balloon_default_right = (3 * gw // 4, gh - 40)
 
         # 加载中文字体
         font_path = os.path.join("assets", "fonts", "SourceHanSansCN-Bold.otf")
@@ -178,6 +178,11 @@ class DialogGLRenderer:
 
         sentence = dialog_state.current_sentence
 
+        # 启用 alpha 混合，禁用深度测试（2D 叠加渲染）
+        self.ctx.enable(moderngl.BLEND)
+        self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        self.ctx.disable(moderngl.DEPTH_TEST)
+
         # 先渲染立绘（在气泡下层）
         self._render_portraits(dialog_state)
 
@@ -195,31 +200,76 @@ class DialogGLRenderer:
         self._draw_quad()
 
     def _render_to_surface(self, dialog_state):
-        """Render dialog content to SoftwareSurface."""
+        """Render dialog content to SoftwareSurface — always uses gradient dark box."""
         sentence = dialog_state.current_sentence
         if sentence is None:
             return None, self._quad_rect
+        return self._render_gradient_box(sentence, dialog_state.visible_chars, dialog_state.frame_counter)
 
-        if self._balloon_config and self._balloon_sprites:
-            return self._render_balloon_surface(sentence, dialog_state.visible_chars, dialog_state.frame_counter)
+    def _render_gradient_box(self, sentence, visible_chars: int, frame_counter: int):
+        """渐变深色对话框：底部不透明，向上淡出为透明。"""
+        from PIL import Image as _PILImage
+        gx, gy, gw, gh = self.game_viewport
 
-        # Fallback: dialog box
-        surface = SoftwareSurface(self.box_width, self.box_height)
-        surface.fill((0, 0, 0, 180))
+        box_w = gw
+        box_h = 230
+        box_x = gx
+        box_y = gy + gh - box_h
 
+        # 构建渐变 RGBA 数组
+        arr = np.zeros((box_h, box_w, 4), dtype=np.uint8)
+        arr[:, :, 0] = 4
+        arr[:, :, 1] = 4
+        arr[:, :, 2] = 16  # 极深蓝黑色
+
+        # Alpha：上方 40% 线性淡入，下方 60% 固定 210
+        fade_rows = int(box_h * 0.4)
+        for row in range(box_h):
+            if row < fade_rows:
+                arr[row, :, 3] = int(210 * (row / fade_rows) ** 1.6)
+            else:
+                arr[row, :, 3] = 210
+
+        surface = SoftwareSurface(_PILImage.fromarray(arr, 'RGBA'))
+
+        # 文字起始 Y（从渐变开始有一定不透明度的位置算起）
+        pad_left = 24
+        text_top = fade_rows + 8
+
+        # 角色名
         if sentence.character:
-            name_surface = self.name_font.render(sentence.character, True, (255, 255, 100))
-            surface.blit(name_surface, (15, 10))
+            char_id = self._resolve_char_id(sentence.character)
+            cfg = self._portrait_configs.get(char_id, {})
+            display_name = (
+                getattr(sentence, "name", None)
+                or cfg.get("display_name")
+                or sentence.character
+            )
+            name_surf = self.name_font.render(display_name, True, (255, 215, 100))
+            name_w, _ = name_surf.get_size()
+            surface.blit(name_surf, (pad_left, text_top))
+            text_top += self.name_font.get_linesize() + 4
 
-        visible_text = sentence.text[:dialog_state.visible_chars]
-        lines = self._wrap_text(visible_text, self.font, self.box_width - 30)
-        y = 45
+            # 名字下划线（与文字同宽）
+            line_y = text_top - 2
+            surface.draw_line((255, 215, 100, 160), (pad_left, line_y), (pad_left + name_w + 6, line_y), width=1)
+            text_top += 2
+
+        # 对话正文
+        visible_text = sentence.text[:visible_chars]
+        lines = self._wrap_text(visible_text, self.font, box_w - pad_left * 2)
         for line in lines:
-            text_surface = self.font.render(line, True, (255, 255, 255))
-            surface.blit(text_surface, (15, y))
-            y += 35
+            ts = self.font.render(line, True, (240, 240, 240))
+            surface.blit(ts, (pad_left, text_top))
+            text_top += self.font.get_linesize() + 2
 
-        return surface, (self.box_x, self.box_y, self.box_width, self.box_height)
+        # 继续提示（打字结束后显示）
+        if visible_chars >= len(sentence.text):
+            hint = self.balloon_hint_font.render("▼ 按 Z 继续", True, (180, 180, 180))
+            hw, hh = hint.get_size()
+            surface.blit(hint, (box_w - hw - pad_left, box_h - hh - 10))
+
+        return surface, (box_x, box_y, box_w, box_h)
 
     def _wrap_text(self, text, font, max_width):
         """逐字换行"""
@@ -321,23 +371,37 @@ class DialogGLRenderer:
             if slot_entry:
                 self._render_portrait_slot(slot_entry, pos, is_active=(pos == active_pos))
 
+    def _resolve_char_id(self, char_name: str) -> str:
+        """把 'Luna Child' → 'Luna_Child'，支持 display_name 或空格/下划线两种写法。"""
+        if char_name in self._portrait_configs:
+            return char_name
+        underscore = char_name.replace(" ", "_")
+        if underscore in self._portrait_configs:
+            return underscore
+        # 反向查 display_name
+        for cid, cfg in self._portrait_configs.items():
+            if cfg.get("display_name") == char_name:
+                return cid
+        return char_name  # fallback，让后续逻辑报错
+
     def _render_portrait_slot(self, slot_entry: Dict[str, Any], position: str, is_active: bool):
         char_name = slot_entry.get("character")
         if not char_name:
             return
 
-        config = self._portrait_configs.get(char_name, {})
+        char_id = self._resolve_char_id(char_name)
+        config = self._portrait_configs.get(char_id, {})
         requested_key = slot_entry.get("portrait", "normal") or "normal"
-        portrait_id = f"{char_name}/{requested_key}"
+        portrait_id = f"{char_id}/{requested_key}"
         portrait_surface = self._character_portraits.get(portrait_id)
         portrait_info = config.get("portraits", {}).get(requested_key, {})
         if not portrait_surface:
             default_key = config.get("default_portrait", "normal")
-            portrait_id = f"{char_name}/{default_key}"
+            portrait_id = f"{char_id}/{default_key}"
             portrait_surface = self._character_portraits.get(portrait_id)
             portrait_info = config.get("portraits", {}).get(default_key, {})
             if not portrait_surface:
-                return
+                return  # 该角色确实没有立绘文件，静默跳过
 
         sentence_scale = float(slot_entry.get("portrait_scale", 1.0) or 1.0)
         base_scale = float(config.get("base_scale", 1.0) or 1.0)

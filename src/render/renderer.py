@@ -1149,9 +1149,38 @@ class Renderer:
         self.player_vao.render(moderngl.TRIANGLES)
     
     def _render_boss(self, stage_manager):
-        """渲染Boss"""
+        """渲染Boss（优先使用精灵动画，fallback 到纯色占位）"""
         active_boss = stage_manager.get_active_boss()
-        if active_boss and active_boss.alive:
+        if not (active_boss and active_boss.alive):
+            return
+
+        frame, texture_path = None, None
+        if hasattr(active_boss, 'get_render_frame'):
+            frame, texture_path = active_boss.get_render_frame()
+
+        if frame is not None and texture_path and texture_path in self.textures:
+            rect = list(frame.rect)
+            tex_w, tex_h = self.textures[texture_path].size
+            u0 = rect[0] / tex_w
+            u1 = (rect[0] + rect[2]) / tex_w
+            v0 = 1.0 - (rect[1] + rect[3]) / tex_h
+            v1 = 1.0 - rect[1] / tex_h
+            # boss sprites are 96px on a ~384px-wide field → /192 gives 0.5 units (good for boss)
+            sw = rect[2] / 192.0
+            sh = rect[3] / 192.0
+            px, py = active_boss.pos[0], active_boss.pos[1]
+            vertices = np.array([
+                px - sw/2, py - sh/2, u0, v0,
+                px + sw/2, py - sh/2, u1, v0,
+                px + sw/2, py + sh/2, u1, v1,
+                px - sw/2, py - sh/2, u0, v0,
+                px + sw/2, py + sh/2, u1, v1,
+                px - sw/2, py + sh/2, u0, v1,
+            ], dtype='f4')
+            self.player_tex_vbo.write(vertices.tobytes())
+            self.textures[texture_path].use(0)
+            self.player_tex_vao.render(moderngl.TRIANGLES)
+        else:
             boss_size = 0.05
             boss_vertices = np.array([
                 active_boss.pos[0] - boss_size, active_boss.pos[1] + boss_size,

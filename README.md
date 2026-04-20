@@ -103,8 +103,14 @@
 # 依赖
 pip install -r requirements.txt
 
-# 运行测试
+# 运行游戏（默认 Stage1）
 python main.py
+
+# 资源预览关卡（小怪 + 子弹分页渲染）
+python main.py --stage=asset_preview
+
+# 查看当前可用的小怪预设与子弹别名
+python tools/stage/list_combat_assets.py
 ```
 
 如果环境里出现 `Numba needs NumPy 2.0 or less` 一类错误，请使用与 `Numba` 兼容的 `numpy<2` 环境。

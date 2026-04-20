@@ -6,3 +6,4 @@ Stage 1 - 赤より紅い夢
 """
 
 from .stage_script import Stage1
+from .stage_asset_preview import Stage1AssetPreview
