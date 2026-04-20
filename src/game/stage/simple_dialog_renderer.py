@@ -21,6 +21,8 @@ class SimpleDialogTextRenderer:
         self.current_sentence: Optional[DialogSentence] = None
         self.visible_chars: int = 0  # 打字机效果
         self.frame_counter: int = 0
+        self.active_speaker_position: Optional[str] = None
+        self.portrait_slots = {"left": None, "right": None}
 
         # 字体
         try:
@@ -35,6 +37,18 @@ class SimpleDialogTextRenderer:
         self.current_sentence = sentence
         self.visible_chars = 0
         self.frame_counter = 0
+        position = sentence.position if sentence.position in ("left", "right") else "left"
+        self.active_speaker_position = position
+
+        if sentence.character:
+            self.portrait_slots[position] = {
+                "character": sentence.character,
+                "portrait": sentence.portrait or "normal",
+                "position": position,
+                "portrait_scale": sentence.portrait_scale,
+                "portrait_x": sentence.portrait_x,
+                "portrait_y": sentence.portrait_y,
+            }
 
     def update(self):
         """更新打字机效果"""
@@ -111,6 +125,8 @@ class SimpleDialogTextRenderer:
         self.current_sentence = None
         self.visible_chars = 0
         self.frame_counter = 0
+        self.active_speaker_position = None
+        self.portrait_slots = {"left": None, "right": None}
 
     def is_active(self) -> bool:
         """检查对话是否正在进行"""

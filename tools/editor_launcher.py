@@ -5,6 +5,7 @@ pystg 编辑器启动器
   1. 弹幕别名管理器 — 管理弹幕类型/颜色→精灵的映射关系
   2. 纹理资产编辑器 — 编辑精灵图集、裁切区域、动画帧
   3. 自机编辑器     — 编辑自机动画、射击、子机配置
+  4. 立绘渲染编辑器 — 编辑对话立绘槽位和焦点效果
 
 使用:
     python tools/editor_launcher.py
@@ -144,6 +145,13 @@ class EditorLauncher(QMainWindow):
             "👾", "#fab387")
         card4.mousePressEvent = lambda e: self._launch("enemy/enemy_alias_manager.py")
         cards_layout.addWidget(card4, 1, 0)
+
+        # 立绘渲染编辑器
+        card5 = ToolCard(
+            "立绘渲染", "编辑对话立绘槽位、说话者上移、非说话者透明度/饱和度",
+            "🗨️", "#cba6f7")
+        card5.mousePressEvent = lambda e: self._launch("dialog/dialog_portrait_editor.py")
+        cards_layout.addWidget(card5, 1, 1)
 
         layout.addLayout(cards_layout)
         layout.addStretch()

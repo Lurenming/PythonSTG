@@ -14,11 +14,12 @@ from src.game.stage.spellcard import SpellCard
 
 class MoonlightRay(SpellCard):
     """月符「Moonlight Ray」"""
-    
+
     name = "月符「Moonlight Ray」"
     hp = 1200
     time_limit = 60
     bonus = 1000000
+    DEBUG_BOOKMARK = True  # 在 --debug 菜单中显示为书签入口
     
     async def setup(self):
         """Boss 移动到中央上方"""

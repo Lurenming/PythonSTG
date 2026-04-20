@@ -37,6 +37,7 @@ FLAG_BOUNCE_X            = 0x0001  # 碰到左右边界反弹
 FLAG_BOUNCE_Y            = 0x0002  # 碰到上下边界反弹
 FLAG_IS_EMITTER          = 0x0004  # 发射器节点（不渲染、不碰撞）
 FLAG_RENDER_ANGLE_LOCKED = 0x0008  # render_angle 锁定跟随运动角（默认开启）
+FLAG_IS_POLAR            = 0x0010  # 极坐标子弹（JIT 内核跳过，由 _update_polar_motions 驱动）
 
 # ============= Curve 类型常量 =============
 
@@ -621,6 +622,7 @@ class OptimizedBulletPool:
         )
         self.polar_motions[int(idx)] = motion
         self.data['acc'][idx] = (0.0, 0.0)
+        self.data['flags'][idx] |= 0x0010  # FLAG_IS_POLAR
         self._apply_polar_motion(int(idx), motion)
 
     def spawn_polar_bullet(self, center, orbit_radius: float, theta: float,
@@ -693,6 +695,14 @@ def _update_bullets_optimized(data, dt):
         # 每子弹独立时间缩放
         ts = data[i]['time_scale']
         local_dt = dt * ts
+
+        # 极坐标子弹由 _update_polar_motions 驱动，跳过 JIT 内核中的位置更新
+        flags = data[i]['flags']
+        if flags & 16:  # FLAG_IS_POLAR
+            data[i]['lifetime'] += local_dt
+            if data[i]['max_lifetime'] > 0.0 and data[i]['lifetime'] >= data[i]['max_lifetime']:
+                data[i]['alive'] = 0
+            continue
 
         data[i]['lifetime'] += local_dt
 

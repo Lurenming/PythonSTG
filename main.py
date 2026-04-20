@@ -54,37 +54,63 @@ def build_debug_menu(stage_class):
     from src.game.stage.stage_base import BossDef
     from src.game.stage.boss_base import BossPhaseType
 
-    entries = [{"label": "从头开始", "target": None}]
+    entries = [{"label": "从头开始", "target": None, "is_bookmark": False}]
 
-    # 扫描类属性，查找 BossDef（保持声明顺序）
-    boss_attrs = []
+    # ---- Bookmark 区域：扫描所有 BossPhase 的 script_class ----
+    bookmark_entries = []
     for attr_name in vars(stage_class):
         if attr_name.startswith('_'):
             continue
         attr = getattr(stage_class, attr_name, None)
-        if isinstance(attr, BossDef):
-            boss_attrs.append((attr_name, attr))
+        if not isinstance(attr, BossDef):
+            continue
+        is_midboss = "mid" in attr_name.lower()
+        effective_type = "midboss" if is_midboss else "boss"
+        for i, phase in enumerate(attr.phases):
+            sc = phase.script_class
+            if sc and getattr(sc, 'DEBUG_BOOKMARK', False):
+                if phase.phase_type == BossPhaseType.SPELLCARD:
+                    phase_label = phase.name or f"符卡 {i}"
+                else:
+                    phase_label = f"通常攻撃 {i + 1}"
+                bookmark_entries.append({
+                    "label": f"[Bookmark] {attr.name} / {phase_label}",
+                    "target": {"type": effective_type, "phase": i},
+                    "is_bookmark": True,
+                })
 
-    for attr_name, boss_def in boss_attrs:
+    if bookmark_entries:
+        entries.append({"label": "───── Bookmarks ─────", "target": None, "is_bookmark": False, "separator": True})
+        entries.extend(bookmark_entries)
+
+    # ---- Boss 入口区域 ----
+    for attr_name in vars(stage_class):
+        if attr_name.startswith('_'):
+            continue
+        attr = getattr(stage_class, attr_name, None)
+        if not isinstance(attr, BossDef):
+            continue
         is_midboss = "mid" in attr_name.lower()
         effective_type = "midboss" if is_midboss else "boss"
         type_label = "道中 Boss" if is_midboss else "Boss"
 
         # Boss 入口（从第 0 阶段开始）
         entries.append({
-            "label": f"{type_label}: {boss_def.name} ({boss_def.id})",
-            "target": {"type": effective_type, "phase": 0}
+            "label": f"{type_label}: {attr.name} ({attr.id})",
+            "target": {"type": effective_type, "phase": 0},
+            "is_bookmark": False,
         })
 
         # 每个阶段
-        for i, phase in enumerate(boss_def.phases):
+        for i, phase in enumerate(attr.phases):
             if phase.phase_type == BossPhaseType.SPELLCARD:
                 phase_label = phase.name or f"符卡 {i}"
             else:
                 phase_label = f"通常攻撃 {i + 1}"
             entries.append({
                 "label": f"  └ Phase {i}: {phase_label}",
-                "target": {"type": effective_type, "phase": i}
+                "target": {"type": effective_type, "phase": i},
+                "is_bookmark": False,
             })
 
     return entries
@@ -94,7 +120,7 @@ def run_debug_menu(window, ctx, screen_size, stage_class):
     """在 GUI 中显示 Debug 跳转菜单，处理用户输入并返回选择的 target 或 None"""
     from src.ui.main_menu_renderer import MainMenuRenderer
     from src.core.window import FrameClock, EVENT_QUIT, EVENT_KEYDOWN
-    from src.core.input_manager import KEY_UP, KEY_DOWN, KEY_z, KEY_ESCAPE
+    from src.core.input_manager import KEY_UP, KEY_DOWN, KEY_z, KEY_ESCAPE, KEY_b
 
     stage_name = getattr(stage_class, 'name', stage_class.__name__)
     entries = build_debug_menu(stage_class)
@@ -114,7 +140,7 @@ def run_debug_menu(window, ctx, screen_size, stage_class):
         "option_font_size": 22,           # 字体更小
         "option_colors": {"normal": [180, 180, 180], "selected": [255, 255, 100]},
         "hint": {
-            "text": "方向键 ↑↓ 选择  Z 确认  ESC 从头开始",
+            "text": "↑↓ 选择  Z 确认  ESC 从头  [B] 书签",
             "font_size": 18,
             "color": [150, 150, 150],
             "y_offset": -30
@@ -144,6 +170,26 @@ def run_debug_menu(window, ctx, screen_size, stage_class):
                 elif event['key'] == KEY_ESCAPE:
                     renderer.cleanup()
                     return None # 默认不跳过
+                elif event['key'] == KEY_b:
+                    # 清除当前选中的 Bookmark 标记（仅对书签项生效）
+                    if entries[selected_index].get("is_bookmark") and entries[selected_index].get("target"):
+                        sc_class = None
+                        # 找到对应的 script_class 以清除标记
+                        for attr_name in vars(stage_class):
+                            if attr_name.startswith('_'):
+                                continue
+                            attr = getattr(stage_class, attr_name, None)
+                            from src.game.stage.stage_base import BossDef
+                            if not isinstance(attr, BossDef):
+                                continue
+                            for phase in attr.phases:
+                                if getattr(phase.script_class, 'DEBUG_BOOKMARK', False):
+                                    phase.script_class.DEBUG_BOOKMARK = False
+                        # 重建菜单
+                        entries = build_debug_menu(stage_class)
+                        layout["options"] = [{"text": e["label"]} for e in entries]
+                        num_options = len(entries)
+                        selected_index = min(selected_index, num_options - 1)
 
         ctx.viewport = (0, 0, screen_size[0], screen_size[1])
         ctx.clear(0.0, 0.0, 0.0)

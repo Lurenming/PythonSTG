@@ -17,7 +17,8 @@ import json
 import moderngl
 import numpy as np
 import os
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Any
+from PIL import ImageEnhance
 
 from ..core.image_loader import SoftwareSurface, FontRenderer, load_image_surface
 
@@ -71,14 +72,48 @@ class DialogGLRenderer:
         # Character portrait assets
         self._character_portraits = {}  # {"CharName/portrait": SoftwareSurface}
         self._portrait_configs = {}      # {"CharName": config dict}
+        self._portrait_layout = self._load_portrait_layout()
+        self._portrait_effect_cache: Dict[Tuple[Any, ...], SoftwareSurface] = {}
         self._load_character_portraits()
-        self._portrait_default_left = (gx + 20, gy + gh - 350)
-        self._portrait_default_right = (gx + gw - 120, gy + gh - 350)
 
         # GL 资源
         self._init_shader()
         self._dialog_texture = None
         self._portrait_texture = None
+
+    def _load_portrait_layout(self) -> Dict[str, Any]:
+        gx, gy, gw, gh = self.game_viewport
+        default_layout = {
+            "slots": {
+                "left": {"anchor_px": [220, gh - 40]},
+                "right": {"anchor_px": [gw - 220, gh - 40]},
+            },
+            "focus": {
+                "speaker_lift_px": 20,
+                "active_alpha": 1.0,
+                "inactive_alpha": 0.62,
+                "active_saturation": 1.0,
+                "inactive_saturation": 0.35,
+            },
+            "render_order": ["left", "right"],
+        }
+        config_path = os.path.join("assets", "ui", "dialog_portrait_layout.json")
+        if not os.path.exists(config_path):
+            return default_layout
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+            if not isinstance(loaded, dict):
+                return default_layout
+            merged = default_layout
+            merged["slots"].update(loaded.get("slots", {}))
+            merged["focus"].update(loaded.get("focus", {}))
+            render_order = loaded.get("render_order")
+            if isinstance(render_order, list) and render_order:
+                merged["render_order"] = render_order
+            return merged
+        except Exception:
+            return default_layout
 
     def _init_shader(self):
         """初始化 textured quad 着色器"""
@@ -144,7 +179,7 @@ class DialogGLRenderer:
         sentence = dialog_state.current_sentence
 
         # 先渲染立绘（在气泡下层）
-        self._render_portrait(sentence)
+        self._render_portraits(dialog_state)
 
         # Render to SoftwareSurface
         surface, quad_rect = self._render_to_surface(dialog_state)
@@ -245,49 +280,184 @@ class DialogGLRenderer:
         self._dialog_texture.use(0)
         self.vao.render(moderngl.TRIANGLES)
 
-    def _render_portrait(self, sentence):
-        """渲染角色立绘"""
+    def _render_portraits(self, dialog_state):
+        """渲染角色立绘（支持左右双人同屏）"""
+        sentence = getattr(dialog_state, "current_sentence", None)
         if not sentence:
             return
 
-        char_name = getattr(sentence, "character", None)
-        portrait_key = getattr(sentence, "portrait", "normal") or "normal"
+        slots = {}
+        state_slots = getattr(dialog_state, "portrait_slots", None)
+        if isinstance(state_slots, dict):
+            for pos in ("left", "right"):
+                slot_entry = state_slots.get(pos)
+                if isinstance(slot_entry, dict) and slot_entry.get("character"):
+                    slots[pos] = slot_entry
+
+        if not slots and getattr(sentence, "character", None):
+            pos = getattr(sentence, "position", "left")
+            if pos not in ("left", "right"):
+                pos = "left"
+            slots[pos] = {
+                "character": sentence.character,
+                "portrait": getattr(sentence, "portrait", "normal") or "normal",
+                "position": pos,
+                "portrait_scale": getattr(sentence, "portrait_scale", 1.0),
+                "portrait_x": getattr(sentence, "portrait_x", None),
+                "portrait_y": getattr(sentence, "portrait_y", None),
+            }
+
+        active_pos = getattr(dialog_state, "active_speaker_position", None)
+        if active_pos not in ("left", "right"):
+            active_pos = getattr(sentence, "position", "left")
+        if active_pos not in ("left", "right"):
+            active_pos = "left"
+
+        render_order = self._portrait_layout.get("render_order", ["left", "right"])
+        for pos in render_order:
+            if pos not in ("left", "right"):
+                continue
+            slot_entry = slots.get(pos)
+            if slot_entry:
+                self._render_portrait_slot(slot_entry, pos, is_active=(pos == active_pos))
+
+    def _render_portrait_slot(self, slot_entry: Dict[str, Any], position: str, is_active: bool):
+        char_name = slot_entry.get("character")
         if not char_name:
             return
 
-        # 查找立绘
-        portrait_id = f"{char_name}/{portrait_key}"
+        config = self._portrait_configs.get(char_name, {})
+        requested_key = slot_entry.get("portrait", "normal") or "normal"
+        portrait_id = f"{char_name}/{requested_key}"
         portrait_surface = self._character_portraits.get(portrait_id)
+        portrait_info = config.get("portraits", {}).get(requested_key, {})
         if not portrait_surface:
-            # 尝试 default portrait
-            config = self._portrait_configs.get(char_name, {})
             default_key = config.get("default_portrait", "normal")
             portrait_id = f"{char_name}/{default_key}"
             portrait_surface = self._character_portraits.get(portrait_id)
+            portrait_info = config.get("portraits", {}).get(default_key, {})
             if not portrait_surface:
                 return
 
-        # 确定位置
-        position = getattr(sentence, "position", "left")
-        portrait_x = getattr(sentence, "portrait_x", None)
-        portrait_y = getattr(sentence, "portrait_y", None)
+        sentence_scale = float(slot_entry.get("portrait_scale", 1.0) or 1.0)
+        base_scale = float(config.get("base_scale", 1.0) or 1.0)
+        portrait_scale = float(portrait_info.get("scale", 1.0) or 1.0)
+        final_scale = max(0.01, sentence_scale * base_scale * portrait_scale)
 
-        if portrait_x is not None and portrait_y is not None:
-            px, py = int(portrait_x), int(portrait_y)
-        elif position == "right":
-            px, py = self._portrait_default_right
+        src_w, src_h = portrait_surface.get_size()
+        target_w = max(1, int(src_w * final_scale))
+        target_h = max(1, int(src_h * final_scale))
+
+        focus_cfg = self._portrait_layout.get("focus", {})
+        if is_active:
+            alpha = self._clamp01(float(focus_cfg.get("active_alpha", 1.0)))
+            saturation = max(0.0, float(focus_cfg.get("active_saturation", 1.0)))
+            lift_px = int(focus_cfg.get("speaker_lift_px", 0))
         else:
-            px, py = self._portrait_default_left
+            alpha = self._clamp01(float(focus_cfg.get("inactive_alpha", 0.62)))
+            saturation = max(0.0, float(focus_cfg.get("inactive_saturation", 0.35)))
+            lift_px = int(focus_cfg.get("inactive_lift_px", 0))
 
-        # 应用缩放
-        portrait_scale = getattr(sentence, "portrait_scale", 1.0) or 1.0
+        processed = self._prepare_portrait_surface(
+            portrait_id=portrait_id,
+            base_surface=portrait_surface,
+            target_size=(target_w, target_h),
+            saturation=saturation,
+            alpha=alpha,
+        )
+        pw, ph = processed.get_size()
+
+        px_override = slot_entry.get("portrait_x")
+        py_override = slot_entry.get("portrait_y")
+        if px_override is not None and py_override is not None:
+            px = int(px_override)
+            py = int(py_override) - lift_px
+        else:
+            slot_anchor = self._resolve_slot_anchor(position, config)
+            ax, ay = self._resolve_anchor_ratio(portrait_info, src_w, src_h)
+            px = int(slot_anchor[0] - ax * pw)
+            py = int(slot_anchor[1] - ay * ph - lift_px)
+
+        self._draw_portrait_surface(processed, px, py)
+
+    def _resolve_slot_anchor(self, position: str, config: Dict[str, Any]) -> Tuple[int, int]:
+        gx, gy, gw, gh = self.game_viewport
+        slots_cfg = self._portrait_layout.get("slots", {})
+        slot_cfg = slots_cfg.get(position, {})
+        anchor_px = slot_cfg.get("anchor_px", [220 if position == "left" else gw - 220, gh - 40])
+        if not isinstance(anchor_px, (list, tuple)) or len(anchor_px) < 2:
+            anchor_px = [220 if position == "left" else gw - 220, gh - 40]
+        x = int(anchor_px[0])
+        y = int(anchor_px[1])
+
+        slot_offset_cfg = config.get("slot_offset", {})
+        if isinstance(slot_offset_cfg, dict):
+            offset = slot_offset_cfg.get(position, [0, 0])
+        else:
+            offset = [0, 0]
+        if isinstance(offset, (list, tuple)) and len(offset) >= 2:
+            x += int(offset[0])
+            y += int(offset[1])
+
+        return gx + x, gy + y
+
+    def _resolve_anchor_ratio(self, portrait_info: Dict[str, Any], width: int, height: int) -> Tuple[float, float]:
+        anchor = portrait_info.get("anchor")
+        if anchor is None:
+            anchor = portrait_info.get("center", [0.5, 0.95])
+        if not isinstance(anchor, (list, tuple)) or len(anchor) < 2:
+            return 0.5, 0.95
+        ax = float(anchor[0])
+        ay = float(anchor[1])
+        if ax > 1.0:
+            ax = ax / max(1.0, float(width))
+        if ay > 1.0:
+            ay = ay / max(1.0, float(height))
+        return self._clamp01(ax), self._clamp01(ay)
+
+    def _prepare_portrait_surface(
+        self,
+        portrait_id: str,
+        base_surface: SoftwareSurface,
+        target_size: Tuple[int, int],
+        saturation: float,
+        alpha: float,
+    ) -> SoftwareSurface:
+        cache_key = (
+            portrait_id,
+            target_size[0],
+            target_size[1],
+            int(saturation * 1000),
+            int(alpha * 1000),
+        )
+        cached = self._portrait_effect_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        src_w, src_h = base_surface.get_size()
+        if (src_w, src_h) == target_size:
+            surface = base_surface
+        else:
+            surface = SoftwareSurface.smoothscale(base_surface, target_size)
+
+        needs_effect = abs(saturation - 1.0) > 1e-4 or abs(alpha - 1.0) > 1e-4
+        if needs_effect:
+            img = surface._image.copy()
+            if abs(saturation - 1.0) > 1e-4:
+                img = ImageEnhance.Color(img).enhance(saturation)
+            if abs(alpha - 1.0) > 1e-4:
+                alpha_band = img.split()[3]
+                alpha_band = alpha_band.point(lambda p: int(max(0, min(255, p * alpha))))
+                img.putalpha(alpha_band)
+            surface = SoftwareSurface(img)
+
+        if len(self._portrait_effect_cache) > 256:
+            self._portrait_effect_cache.clear()
+        self._portrait_effect_cache[cache_key] = surface
+        return surface
+
+    def _draw_portrait_surface(self, portrait_surface: SoftwareSurface, px: int, py: int):
         pw, ph = portrait_surface.get_size()
-        if portrait_scale != 1.0:
-            pw = int(pw * portrait_scale)
-            ph = int(ph * portrait_scale)
-            portrait_surface = SoftwareSurface.smoothscale(portrait_surface, (pw, ph))
-
-        # 上传纹理
         data = portrait_surface.to_bytes("RGBA", flip_y=True)
         if self._portrait_texture is not None:
             if self._portrait_texture.size == (pw, ph):
@@ -300,7 +470,6 @@ class DialogGLRenderer:
             self._portrait_texture = self.ctx.texture((pw, ph), 4, data)
             self._portrait_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
 
-        # 绘制 quad
         x0 = float(px)
         y0 = float(py)
         x1 = float(px + pw)
@@ -314,10 +483,13 @@ class DialogGLRenderer:
             x0, y1, 0.0, 0.0,
             x1, y1, 1.0, 0.0,
         ], dtype='f4')
-
         self.vbo.write(vertices.tobytes())
         self._portrait_texture.use(0)
         self.vao.render(moderngl.TRIANGLES)
+
+    @staticmethod
+    def _clamp01(v: float) -> float:
+        return max(0.0, min(1.0, v))
 
     def _load_balloon_assets(self):
         """Load balloon sprite sheet and config."""
@@ -376,10 +548,6 @@ class DialogGLRenderer:
                     full_path = os.path.join(char_dir, file_path)
                     if os.path.exists(full_path):
                         img = load_image_surface(full_path)
-                        scale = portrait_info.get("scale", 1.0)
-                        if scale != 1.0:
-                            new_size = (int(img.get_width() * scale), int(img.get_height() * scale))
-                            img = SoftwareSurface.smoothscale(img, new_size)
                         self._character_portraits[f"{char_name}/{portrait_key}"] = img
             except Exception as e:
                 print(f"[DialogGLRenderer] Failed to load character {char_name}: {e}")

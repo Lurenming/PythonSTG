@@ -148,6 +148,8 @@ class Stage1(StageScript):
         await self.run_boss(self.boss)       # Boss 战
 ```
 
+对话立绘渲染参数位于 `assets/ui/dialog_portrait_layout.json`，可用 `python tools/dialog/dialog_portrait_editor.py` 进行可视化调节（左右槽位锚点、说话者上移、非说话者透明度/饱和度）。
+
 ## 下一步
 
 - **写弹幕** → [弹幕脚本开发指南](STAGE_SCRIPTING_GUIDE.md)

@@ -6,7 +6,7 @@ import math
 from .optimized_pool import OptimizedBulletPool
 # 导入 flags / curve 常量（统一使用）
 from .optimized_pool import (
-    FLAG_BOUNCE_X, FLAG_BOUNCE_Y, FLAG_IS_EMITTER, FLAG_RENDER_ANGLE_LOCKED,
+    FLAG_BOUNCE_X, FLAG_BOUNCE_Y, FLAG_IS_EMITTER, FLAG_RENDER_ANGLE_LOCKED, FLAG_IS_POLAR,
     CURVE_NONE, CURVE_SIN_SPEED, CURVE_SIN_ANGLE, CURVE_COS_SPEED, CURVE_LINEAR_SPEED,
 )
 
@@ -410,6 +410,7 @@ class BulletPool:
         )
         self.polar_motions[int(idx)] = motion
         self.data['acc'][idx] = (0.0, 0.0)
+        self.data['flags'][idx] |= FLAG_IS_POLAR
         self._apply_polar_motion(int(idx), motion)
 
     def spawn_polar_bullet(self, center, orbit_radius, theta,
@@ -464,12 +465,11 @@ class BulletPool:
             self.polar_motions.pop(int(idx), None)
 
 
-@njit
+@njit(cache=True)
 def _update_bullets(data, dt):
     """v2 子弹更新函数（与 OptimizedBulletPool 逻辑对齐）"""
     for i in range(len(data)):
         if data[i]['alive']:
-            # 时间缩放
             ts = data[i]['time_scale']
             local_dt = dt * ts
 
@@ -477,6 +477,9 @@ def _update_bullets(data, dt):
 
             if data[i]['max_lifetime'] > 0.0 and data[i]['lifetime'] >= data[i]['max_lifetime']:
                 data[i]['alive'] = 0
+                continue
+
+            if data[i]['flags'] & 16:  # FLAG_IS_POLAR: 跳过，由 _update_polar_motions 驱动
                 continue
 
             # 内置曲线
