@@ -1,0 +1,28 @@
+{
+  "slots": {
+    "left": {
+      "anchor_px": [
+        220,
+        856
+      ]
+    },
+    "right": {
+      "anchor_px": [
+        548,
+        856
+      ]
+    }
+  },
+  "focus": {
+    "speaker_lift_px": 20,
+    "inactive_lift_px": 0,
+    "active_alpha": 1.0,
+    "inactive_alpha": 0.62,
+    "active_saturation": 1.0,
+    "inactive_saturation": 0.35
+  },
+  "render_order": [
+    "left",
+    "right"
+  ]
+}

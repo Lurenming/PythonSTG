@@ -150,7 +150,7 @@ class EditorLauncher(QMainWindow):
         card5 = ToolCard(
             "立绘渲染", "编辑对话立绘槽位、说话者上移、非说话者透明度/饱和度",
             "🗨️", "#cba6f7")
-        card5.mousePressEvent = lambda e: self._launch("dialog/dialog_portrait_editor.py")
+        card5.mousePressEvent = lambda e: self._launch("portrait_editor/run.py")
         cards_layout.addWidget(card5, 1, 1)
 
         layout.addLayout(cards_layout)

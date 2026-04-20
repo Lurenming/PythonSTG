@@ -1,0 +1,61 @@
+{
+  "__character_name": "Sunny Milk（太阳之牛奶）",
+  "__description": "立绘配置",
+  "__source_folder": "Sunny_Milk",
+
+  "portraits": {
+    "Anger": {
+      "file": "Sunny_Milk/Anger.jpg",
+      "center": [0.5, 0.5],
+      "anchor": [0.5, 0.95],
+      "scale": 1.0,
+      "description": "愤怒"
+    },
+    "Happy": {
+      "file": "Sunny_Milk/Happy.jpg",
+      "center": [0.5, 0.5],
+      "anchor": [0.5, 0.95],
+      "scale": 1.0,
+      "description": "开心"
+    },
+    "Sad": {
+      "file": "Sunny_Milk/Sad.jpg",
+      "center": [0.5, 0.5],
+      "anchor": [0.5, 0.95],
+      "scale": 1.0,
+      "description": "悲伤"
+    },
+    "VeryHappy": {
+      "file": "Sunny_Milk/VeryHappy.jpg",
+      "center": [0.5, 0.5],
+      "anchor": [0.5, 0.95],
+      "scale": 1.0,
+      "description": "非常开心"
+    },
+    "Fail_Happy": {
+      "file": "Sunny_Milk/Fail_Happy.jpg",
+      "center": [0.5, 0.5],
+      "anchor": [0.5, 0.95],
+      "scale": 1.0,
+      "description": "失败开心"
+    },
+    "Fail_sad": {
+      "file": "Sunny_Milk/Fail_sad.jpg",
+      "center": [0.5, 0.5],
+      "anchor": [0.5, 0.95],
+      "scale": 1.0,
+      "description": "失败悲伤"
+    },
+    "Fail_Veryhappy": {
+      "file": "Sunny_Milk/Fail_Veryhappy.jpg",
+      "center": [0.5, 0.5],
+      "anchor": [0.5, 0.95],
+      "scale": 1.0,
+      "description": "失败非常开心"
+    }
+  },
+
+  "base_scale": 1.0,
+  "default_portrait": "Happy",
+  "default_position": "left"
+}

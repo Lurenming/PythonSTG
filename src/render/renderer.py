@@ -110,6 +110,7 @@ class Renderer:
         self._init_bullet_shader()
         self._init_player_shader()
         self._init_circle_shader()
+        self._init_viewport_border_shader()
         
         # 初始化激光渲染器
         self.laser_renderer = LaserRenderer(ctx, base_size)
@@ -368,6 +369,58 @@ class Renderer:
         )
         self.circle_vbo = self.ctx.buffer(reserve=(self.circle_segments + 1) * 2 * 4)
         self.circle_vao = self.ctx.vertex_array(self.circle_program, [(self.circle_vbo, '2f', 'in_vert')])
+
+    def _init_viewport_border_shader(self):
+        """初始化游戏视口边框渲染着色器"""
+        self.border_program = self.ctx.program(
+            vertex_shader="""
+            #version 330
+            in vec2 in_vert;
+            void main() {
+                gl_Position = vec4(in_vert, 0.0, 1.0);
+            }
+            """,
+            fragment_shader="""
+            #version 330
+            uniform vec3 u_color;
+            out vec4 f_color;
+            void main() {
+                f_color = vec4(u_color, 1.0);
+            }
+            """
+        )
+        # 4 corner vertices for a quad (will be expanded to line strip for border)
+        # In NDC: left=-1, right=1, top=1, bottom=-1
+        # We build border verts in window coords (not aspect-corrected)
+        self.border_vbo = self.ctx.buffer(reserve=10 * 2 * 4)
+        self.border_vao = self.ctx.vertex_array(
+            self.border_program,
+            [(self.border_vbo, '2f', 'in_vert')]
+        )
+
+    def _render_viewport_border(self, viewport_rect, win_size):
+        """
+        在游戏视口周围绘制边框线（窗口坐标空间）
+        viewport_rect: (x, y, width, height) 像素坐标
+        win_size: (window_width, window_height)
+        """
+        x, y, w, h = viewport_rect
+        win_w, win_h = win_size
+
+        # 四个角点 (顺时针: 左下 → 右下 → 右上 → 左上 → 左下)
+        pts = [
+            (2.0 * x / win_w - 1.0,  2.0 * y / win_h - 1.0),   # 左下
+            (2.0 * (x + w) / win_w - 1.0, 2.0 * y / win_h - 1.0),  # 右下
+            (2.0 * (x + w) / win_w - 1.0, 2.0 * (y + h) / win_h - 1.0),  # 右上
+            (2.0 * x / win_w - 1.0,  2.0 * (y + h) / win_h - 1.0),  # 左上
+            (2.0 * x / win_w - 1.0,  2.0 * y / win_h - 1.0),   # 左下 (封闭)
+        ]
+
+        import numpy as np
+        data = np.array(pts, dtype='f4')
+        self.border_vbo.write(data.tobytes())
+        self.border_program['u_color'].value = (0.3, 0.5, 1.0)  # 蓝色边框
+        self.border_vao.render(moderngl.LINE_STRIP, vertices=5)
     
     def set_background_renderer(self, background_renderer):
         """
@@ -410,7 +463,13 @@ class Renderer:
 
         # 保存并切换视口到游戏区域
         prev_viewport = self.ctx.viewport
+        win_w, win_h = prev_viewport[2], prev_viewport[3]
+        print(f"[DEBUG] ctx.viewport={self.ctx.viewport}, win={win_w}x{win_h}, viewport_rect={viewport_rect}")
         if viewport_rect:
+            # 先清除整个窗口背景（覆盖边框区域）
+            self.ctx.viewport = (0, 0, win_w, win_h)
+            self.ctx.clear(0.05, 0.05, 0.08)
+            # 再切换到游戏视口并清除游戏区域
             self.ctx.viewport = viewport_rect
 
         # 清屏
@@ -479,6 +538,10 @@ class Renderer:
 
         # 还原视口
         self.ctx.viewport = prev_viewport
+
+        # 绘制游戏视口边框（在窗口坐标空间）
+        if viewport_rect:
+            self._render_viewport_border(viewport_rect, (win_w, win_h))
     
     def _render_bullets_sorted(self, bullet_pool):
         """

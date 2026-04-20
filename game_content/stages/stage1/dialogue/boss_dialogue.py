@@ -12,7 +12,7 @@ pre_boss_dialogue = DialogSequence(
         DialogSentence(
             text="你就是掌握核融合力量的地狱鸦吗？",
             character="Hinanawi_Tenshi",
-            portrait="normal",
+            portrait="Happy",
             position="left",
             balloon_style=1
         ),
@@ -33,7 +33,7 @@ pre_boss_dialogue = DialogSequence(
         DialogSentence(
             text="当然是来修行的！正好拿你练练手！",
             character="Hinanawi_Tenshi",
-            portrait="normal",
+            portrait="VeryHappy",
             position="left",
             balloon_style=2
         ),
@@ -62,7 +62,7 @@ post_boss_dialogue = DialogSequence(
         DialogSentence(
             text="这就是天界的实力！",
             character="Hinanawi_Tenshi",
-            portrait="normal",
+            portrait="VeryHappy",
             position="left",
             balloon_style=3
         ),

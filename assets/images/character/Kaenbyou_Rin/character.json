@@ -1,0 +1,62 @@
+{
+  "__character_name": "Kaenbyou Rin（火焰的林）",
+  "__description": "立绘配置",
+  "__source_folder": "Kaenbyou_Rin",
+  "portraits": {
+    "Anger": {
+      "file": "Kaenbyou_Rin/Anger.png",
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
+      "scale": 1.0,
+      "description": "愤怒"
+    },
+    "Happy": {
+      "file": "Kaenbyou_Rin/Happy.png",
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
+      "scale": 1.0,
+      "description": "开心"
+    },
+    "Sad": {
+      "file": "Kaenbyou_Rin/Sad.png",
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
+      "scale": 1.0,
+      "description": "悲伤"
+    },
+    "Very_happy": {
+      "file": "Kaenbyou_Rin/Very_happy.png",
+      "center": [
+        0.5,
+        0.5
+      ],
+      "anchor": [
+        0.5,
+        0.95
+      ],
+      "scale": 1.0,
+      "description": "非常开心"
+    }
+  },
+  "base_scale": 0.359,
+  "default_portrait": "Happy",
+  "default_position": "right"
+}

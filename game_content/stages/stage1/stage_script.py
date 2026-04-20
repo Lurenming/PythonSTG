@@ -71,10 +71,10 @@ class Stage1(StageScript):
 
         # Boss 战前对话
         await self.play_dialogue([
-            ("Hinanawi_Tenshi", "left", "你就是露米娅吗？"),
-            ("Reiuji_Utsuho", "right", "没错！我是灵乌路空！"),
-            ("Hinanawi_Tenshi", "left", "我听说你很擅长使用符卡？"),
-            ("Reiuji_Utsuho", "right", "哼哼，那当然！"),
+            {"character": "Hinanawi_Tenshi", "position": "left", "text": "你就是露米娅吗？", "portrait": "Happy"},
+            {"character": "Reiuji_Utsuho", "position": "right", "text": "没错！我是灵乌路空！", "portrait": "normal"},
+            {"character": "Hinanawi_Tenshi", "position": "left", "text": "我听说你很擅长使用符卡？", "portrait": "Happy"},
+            {"character": "Reiuji_Utsuho", "position": "right", "text": "哼哼，那当然！", "portrait": "normal"},
         ])
 
         # 关底 Boss - 露米娅
@@ -82,6 +82,6 @@ class Stage1(StageScript):
 
         # Boss 战后对话
         await self.play_dialogue([
-            ("Reiuji_Utsuho", "right", "好...好强...！"),
-            ("Hinanawi_Tenshi", "left", "这就是天界的实力！"),
+            {"character": "Reiuji_Utsuho", "position": "right", "text": "好...好强...！", "portrait": "normal"},
+            {"character": "Hinanawi_Tenshi", "position": "left", "text": "这就是天界的实力！", "portrait": "VeryHappy"},
         ])
