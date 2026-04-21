@@ -523,13 +523,17 @@ class LayerEditorPanel(QWidget):
         ll = QVBoxLayout(list_grp)
 
         btns = QHBoxLayout()
-        for text, slot in [("+ 添加", self._add_layer),
-                           ("- 删除", self._del_layer),
-                           ("▲", self._move_up),
-                           ("▼", self._move_down)]:
+        for text, slot, tip in [
+            ("+ 添加", self._add_layer, "新建空图层"),
+            ("⧉ 复制", self._dup_layer, "复制当前选中图层"),
+            ("- 删除", self._del_layer, "删除当前选中图层"),
+            ("▲", self._move_up, "上移"),
+            ("▼", self._move_down, "下移"),
+        ]:
             b = QPushButton(text)
             if text in ("▲", "▼"):
                 b.setFixedWidth(30)
+            b.setToolTip(tip)
             b.clicked.connect(slot)
             btns.addWidget(b)
         ll.addLayout(btns)
@@ -625,6 +629,55 @@ class LayerEditorPanel(QWidget):
         tl.addRow("尺寸:", self.tile_size)
         pl.addWidget(tile_grp)
 
+        # — 变体（同一纹理的偏移/滚动克隆） —
+        var_grp = QGroupBox("变体 (variants)")
+        vl = QVBoxLayout(var_grp)
+        vl.setContentsMargins(6, 6, 6, 6)
+
+        var_btns = QHBoxLayout()
+        for text, slot, tip in [
+            ("+", self._add_variant, "新增变体"),
+            ("-", self._del_variant, "删除选中变体"),
+        ]:
+            b = QPushButton(text)
+            b.setFixedWidth(28)
+            b.setToolTip(tip)
+            b.clicked.connect(slot)
+            var_btns.addWidget(b)
+        var_btns.addStretch()
+        vl.addLayout(var_btns)
+
+        self.variant_list = QListWidget()
+        self.variant_list.setMaximumHeight(80)
+        self.variant_list.currentRowChanged.connect(self._on_variant_selected)
+        vl.addWidget(self.variant_list)
+
+        var_form = QFormLayout()
+        self.var_off_x = QDoubleSpinBox()
+        self.var_off_x.setRange(-10, 10)
+        self.var_off_x.setSingleStep(0.05)
+        self.var_off_x.setDecimals(3)
+        self.var_off_x.valueChanged.connect(self._on_variant_prop)
+        self.var_off_y = QDoubleSpinBox()
+        self.var_off_y.setRange(-10, 10)
+        self.var_off_y.setSingleStep(0.05)
+        self.var_off_y.setDecimals(3)
+        self.var_off_y.valueChanged.connect(self._on_variant_prop)
+        off_row = QHBoxLayout()
+        off_row.addWidget(self.var_off_x)
+        off_row.addWidget(self.var_off_y)
+        var_form.addRow("偏移 X/Y:", off_row)
+        self.var_scroll_mul = QDoubleSpinBox()
+        self.var_scroll_mul.setRange(-10, 10)
+        self.var_scroll_mul.setSingleStep(0.05)
+        self.var_scroll_mul.setDecimals(3)
+        self.var_scroll_mul.valueChanged.connect(self._on_variant_prop)
+        var_form.addRow("滚动系数:", self.var_scroll_mul)
+        vl.addLayout(var_form)
+
+        self._cur_variant_idx = -1
+        pl.addWidget(var_grp)
+
         pl.addStretch()
         scroll.setWidget(pw)
         layout.addWidget(scroll)
@@ -660,6 +713,7 @@ class LayerEditorPanel(QWidget):
     def _on_layer_selected(self, row):
         self._cur_idx = row
         if not self._config or row < 0:
+            self._refresh_variant_list()
             return
         layers = self._config.get("layers", [])
         if row >= len(layers):
@@ -683,6 +737,7 @@ class LayerEditorPanel(QWidget):
         self.tile_y1.setValue(yr[1])
         self.tile_size.setValue(tile.get("size", 1.0))
         self._block = False
+        self._refresh_variant_list()
 
     def _on_prop(self):
         if self._block or not self._config:
@@ -736,6 +791,115 @@ class LayerEditorPanel(QWidget):
             del layers[idx]
             self._cur_idx = -1
             self._refresh_list()
+            self.changed.emit()
+
+    def _dup_layer(self):
+        """复制当前选中的图层，插入其后"""
+        if not self._config:
+            return
+        layers = self._config.get("layers", [])
+        idx = self._cur_idx
+        if not (0 <= idx < len(layers)):
+            return
+        import copy
+        clone = copy.deepcopy(layers[idx])
+        base = clone.get("name", "layer")
+        existing = {L.get("name", "") for L in layers}
+        new_name, i = f"{base}_copy", 1
+        while new_name in existing:
+            i += 1
+            new_name = f"{base}_copy{i}"
+        clone["name"] = new_name
+        layers.insert(idx + 1, clone)
+        self._refresh_list()
+        self.layer_list.setCurrentRow(idx + 1)
+        self.changed.emit()
+
+    # --- 变体 ---
+
+    def _current_layer(self) -> Optional[dict]:
+        if not self._config:
+            return None
+        layers = self._config.get("layers", [])
+        if 0 <= self._cur_idx < len(layers):
+            return layers[self._cur_idx]
+        return None
+
+    def _refresh_variant_list(self):
+        self.variant_list.blockSignals(True)
+        self.variant_list.clear()
+        L = self._current_layer()
+        if L:
+            for v in L.get("variants", []):
+                off = v.get("offset", [0, 0])
+                sm = v.get("scroll_multiplier", 1.0)
+                self.variant_list.addItem(
+                    f"offset=({off[0]:.2f},{off[1]:.2f})  x{sm:.2f}")
+        self.variant_list.blockSignals(False)
+        self._cur_variant_idx = -1
+        self._block = True
+        self.var_off_x.setValue(0)
+        self.var_off_y.setValue(0)
+        self.var_scroll_mul.setValue(1.0)
+        self._block = False
+
+    def _on_variant_selected(self, row):
+        self._cur_variant_idx = row
+        L = self._current_layer()
+        if not L or row < 0:
+            return
+        variants = L.get("variants", [])
+        if row >= len(variants):
+            return
+        v = variants[row]
+        off = v.get("offset", [0, 0])
+        self._block = True
+        self.var_off_x.setValue(off[0])
+        self.var_off_y.setValue(off[1])
+        self.var_scroll_mul.setValue(v.get("scroll_multiplier", 1.0))
+        self._block = False
+
+    def _on_variant_prop(self):
+        if self._block:
+            return
+        L = self._current_layer()
+        if not L:
+            return
+        variants = L.setdefault("variants", [])
+        idx = self._cur_variant_idx
+        if not (0 <= idx < len(variants)):
+            return
+        variants[idx]["offset"] = [self.var_off_x.value(),
+                                   self.var_off_y.value()]
+        variants[idx]["scroll_multiplier"] = self.var_scroll_mul.value()
+        # 只更新列表项文本，不重建避免丢选中
+        off = variants[idx]["offset"]
+        sm = variants[idx]["scroll_multiplier"]
+        item = self.variant_list.item(idx)
+        if item:
+            item.setText(
+                f"offset=({off[0]:.2f},{off[1]:.2f})  x{sm:.2f}")
+        self.changed.emit()
+
+    def _add_variant(self):
+        L = self._current_layer()
+        if not L:
+            return
+        variants = L.setdefault("variants", [])
+        variants.append({"offset": [0.0, 0.0], "scroll_multiplier": 1.0})
+        self._refresh_variant_list()
+        self.variant_list.setCurrentRow(len(variants) - 1)
+        self.changed.emit()
+
+    def _del_variant(self):
+        L = self._current_layer()
+        if not L:
+            return
+        variants = L.get("variants", [])
+        idx = self._cur_variant_idx
+        if 0 <= idx < len(variants):
+            del variants[idx]
+            self._refresh_variant_list()
             self.changed.emit()
 
     def _move_up(self):

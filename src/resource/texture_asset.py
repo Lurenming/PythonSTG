@@ -490,8 +490,9 @@ class TextureAssetManager:
             if not isinstance(sprite_data, dict):
                 continue
             
-            # 处理旧格式的 image_path
-            sprite_texture = sprite_data.get('texture_path') or sprite_data.get('image_path') or texture_path
+            # 优先使用图集级别 texture_path（来自 __image_filename），
+            # 避免旧格式 image_path（如 "THlib//bullet//bullet1.png" 虚拟路径）造成路径不匹配
+            sprite_texture = sprite_data.get('texture_path') or texture_path or sprite_data.get('image_path') or ""
             
             sprite = Sprite(
                 name=sprite_name,

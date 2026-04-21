@@ -119,8 +119,9 @@
         "frames": [
           "normal"
         ],
-        "frame_duration": 60,
-        "loop": true
+        "frame_duration": 20,
+        "loop": false,
+        "next_state": "idle"
       }
     }
   },

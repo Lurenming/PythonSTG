@@ -87,7 +87,10 @@ class StageScript:
         self._coroutine = self._run_wrapper()
 
     async def _run_wrapper(self):
-        """包装 run() —— 播放 BGM 后执行主流程"""
+        """包装 run() —— 应用背景、播放 BGM 后执行主流程"""
+        # 应用关卡声明的背景（失败时保留 main.py 的默认背景）
+        if self.background and self.ctx:
+            self.ctx.set_background(self.background)
         # Debug 跳转模式下不播放道中 BGM（目标 Boss 会自行播放 Boss BGM）
         if self.bgm and not self._debug_skip_target:
             self._play_bgm(self.bgm)
@@ -139,9 +142,15 @@ class StageScript:
         Args:
             wave_class: Wave 子类（类本身，不是实例）
         """
-        # Debug: 跳过模式下直接返回
+        # Debug: 跳转目标检测
         if self._debug_skip_target:
-            return
+            target = self._debug_skip_target
+            if target.get("type") == "wave" and target.get("wave_class") is wave_class:
+                # 到达目标 wave，退出跳过模式，继续执行
+                self._debug_skip_target = None
+                print(f"[Debug] 跳转到 wave: {wave_class.__name__}")
+            else:
+                return  # 不是目标，跳过
 
         wave = wave_class()
         wave.bind(self.ctx)
@@ -182,8 +191,10 @@ class StageScript:
         try:
             from src.resource.texture_asset import get_texture_asset_manager
             boss.setup_render_obj(get_texture_asset_manager())
-        except Exception:
-            pass
+        except Exception as e:
+            import traceback
+            print(f"[StageScript] Boss setup_render_obj 失败 (texture={boss_def.texture!r}): {e}")
+            traceback.print_exc()
         self._current_boss = boss
 
         # Debug: 从指定阶段开始
@@ -219,7 +230,7 @@ class StageScript:
                 ("Reiuji_Utsuho", "right", "哼！"),
             ])
         """
-        # Debug: 跳过模式下直接返回
+        # Debug: 跳过对话（不是跳转目标类型）
         if self._debug_skip_target:
             return
         from .dialog_data import DialogSequence, DialogSentence
@@ -307,6 +318,14 @@ class StageScript:
     def play_bgm(self, name: str):
         """切换 BGM（可在 run() 中随时调用）"""
         self._play_bgm(name)
+        return
+        yield  # 使其成为协程，支持 await
+
+    @types.coroutine
+    def set_background(self, name: str):
+        """切换背景场景（可在 run() 中随时调用，如 Boss 战前换图）"""
+        if self.ctx:
+            self.ctx.set_background(name)
         return
         yield  # 使其成为协程，支持 await
 

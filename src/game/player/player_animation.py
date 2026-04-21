@@ -211,6 +211,15 @@ class PlayerAnimationStateMachine:
             self.frame_index = 0
             self.frame_timer = 0.0
             self.animation_finished = False
+        elif state in (AnimationState.DEATH, AnimationState.SPAWN):
+            # 没有配置对应的特殊动画，立刻退回 idle 避免状态卡死
+            self.current_state = AnimationState.IDLE
+            idle_anim = self.config.animations.get('idle') if self.config else None
+            if idle_anim:
+                self.current_animation = idle_anim
+                self.frame_index = 0
+                self.frame_timer = 0.0
+                self.animation_finished = False
     
     def _update_animation(self, dt: float):
         """更新动画帧"""

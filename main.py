@@ -75,6 +75,48 @@ def resolve_stage_class():
     return stage_class
 
 
+def _scan_wave_bookmarks(stage_class):
+    """扫描 stage 包目录下 waves/ 子目录，收集 DEBUG_BOOKMARK=True 的 Wave 类。"""
+    import importlib
+    import pkgutil
+    from src.game.stage.wave_base import Wave
+
+    results = []
+    module_name = getattr(stage_class, '__module__', '')
+    # e.g. "game_content.stages.stage1.stage_script" -> "game_content.stages.stage1"
+    package_name = '.'.join(module_name.split('.')[:-1])
+    waves_package = f"{package_name}.waves"
+    try:
+        waves_mod = importlib.import_module(waves_package)
+    except ImportError:
+        return results
+
+    waves_path = getattr(waves_mod, '__path__', [])
+    for finder, mod_name, _ in pkgutil.iter_modules(waves_path):
+        full_name = f"{waves_package}.{mod_name}"
+        try:
+            mod = importlib.import_module(full_name)
+        except Exception:
+            continue
+        for attr_name in dir(mod):
+            obj = getattr(mod, attr_name, None)
+            if (
+                isinstance(obj, type)
+                and issubclass(obj, Wave)
+                and obj is not Wave
+                and getattr(obj, 'DEBUG_BOOKMARK', False)
+            ):
+                results.append(obj)
+    # 去重，保持发现顺序
+    seen = set()
+    unique = []
+    for cls in results:
+        if id(cls) not in seen:
+            seen.add(id(cls))
+            unique.append(cls)
+    return unique
+
+
 def build_debug_menu(stage_class):
     """从 StageScript 子类构建 Debug 跳转菜单"""
     from src.game.stage.stage_base import BossDef
@@ -82,8 +124,18 @@ def build_debug_menu(stage_class):
 
     entries = [{"label": "从头开始", "target": None, "is_bookmark": False}]
 
-    # ---- Bookmark 区域：扫描所有 BossPhase 的 script_class ----
+    # ---- Bookmark 区域：Wave 类 + BossPhase ----
     bookmark_entries = []
+
+    # Wave bookmarks
+    for wave_cls in _scan_wave_bookmarks(stage_class):
+        bookmark_entries.append({
+            "label": f"[Bookmark] Wave: {wave_cls.__name__}",
+            "target": {"type": "wave", "wave_class": wave_cls},
+            "is_bookmark": True,
+        })
+
+    # Boss phase bookmarks
     for attr_name in vars(stage_class):
         if attr_name.startswith('_'):
             continue
@@ -307,6 +359,7 @@ def initialize_game_objects(stage_class, audio_manager=None, background_renderer
         player=player,
         audio_manager=audio_manager,
         item_pool=item_pool,
+        background_renderer=background_renderer,
     )
 
     stage_manager.load_stage(stage_class)

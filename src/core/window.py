@@ -51,6 +51,8 @@ class GameWindow:
         elif action == glfw.RELEASE:
             self._key_states[key] = False
             self._events.append({'type': EVENT_KEYUP, 'key': key})
+        elif action == glfw.REPEAT:
+            self._events.append({'type': EVENT_KEYDOWN, 'key': key})
 
     def _close_callback(self, window):
         self._should_close = True

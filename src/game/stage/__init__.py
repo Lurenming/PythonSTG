@@ -27,7 +27,7 @@ class StageManager:
     # ==================== 引擎绑定 ====================
 
     def bind_engine(self, bullet_pool, player,
-                    audio_manager=None, **kwargs):
+                    audio_manager=None, background_renderer=None, **kwargs):
         """
         一次性绑定引擎对象（在 main.py 初始化时调用一次）
 
@@ -35,11 +35,13 @@ class StageManager:
             bullet_pool: 子弹池
             player: 玩家对象
             audio_manager: 音频管理器（可选）
+            background_renderer: 背景渲染器（可选）
             **kwargs: 额外引擎对象（laser_pool, item_pool 等）
         """
         self._engine_refs = {
             'bullet_pool': bullet_pool,
             'player': player,
+            'background_renderer': background_renderer,
             **kwargs
         }
         self._audio_manager = audio_manager
@@ -124,6 +126,7 @@ class StageManager:
             enemy_manager=self.enemy_manager,
             audio_manager=self._audio_manager,
             item_pool=self._engine_refs.get('item_pool'),
+            background_renderer=self._engine_refs.get('background_renderer'),
         )
 
         # 将 ctx 保存到 stage_manager，供渲染器访问

@@ -104,7 +104,8 @@ class StageContext(SpellCardContext):
 
     def __init__(self, bullet_pool, player, enemy_manager=None,
                  laser_pool=None, item_pool=None,
-                 audio_manager: Optional[AudioManager] = None):
+                 audio_manager: Optional[AudioManager] = None,
+                 background_renderer=None):
         self.bullet_pool = bullet_pool
         self._player = player
         self._player_proxy = PlayerProxy(player)
@@ -112,6 +113,7 @@ class StageContext(SpellCardContext):
         self._laser_pool = laser_pool
         self._item_pool = item_pool
         self._audio_manager = audio_manager
+        self._background_renderer = background_renderer
         self._bullet_indices: List[int] = []
         self._enemy_scripts: List[Any] = []
 
@@ -355,6 +357,22 @@ class StageContext(SpellCardContext):
     def unpause_bgm(self):
         if self._audio_manager:
             self._audio_manager.unpause_bgm()
+
+    # ==================== 背景 API ====================
+
+    @property
+    def background_renderer(self):
+        return self._background_renderer
+
+    def set_background(self, name: str) -> bool:
+        """
+        切换背景场景（通过名称加载 assets/images/background/{name}.json）。
+
+        加载失败时保留当前背景，只打印警告。
+        """
+        if not self._background_renderer or not name:
+            return False
+        return self._background_renderer.load_background(name)
 
     # ==================== 内部辅助 ====================
 

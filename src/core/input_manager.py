@@ -28,6 +28,7 @@ KEY_RETURN = glfw.KEY_ENTER
 KEY_w = glfw.KEY_W
 KEY_s = glfw.KEY_S
 KEY_a = glfw.KEY_A
+KEY_b = glfw.KEY_B
 KEY_d = glfw.KEY_D
 
 # Map from pygame-style key name strings (used in player config files) to codes
@@ -46,6 +47,7 @@ _KEY_NAME_MAP = {
     'K_w': KEY_w,
     'K_s': KEY_s,
     'K_a': KEY_a,
+    'K_b': KEY_b,
     'K_d': KEY_d,
 }
 
