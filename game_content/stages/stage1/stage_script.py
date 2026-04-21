@@ -50,7 +50,7 @@ class Stage1(StageScript):
         phases=[
             nonspell(LunaNonSpell1, hp=600, time=25),
             spellcard(StarSpell1, "星符「???」", hp=1000, time=60),
-            spellcard(SunnySpell1, "光符「???」", hp=1200, time=60),
+            spellcard(SunnySpell1, "光符「反射在井盖上的矿院幻影」", hp=1200, time=60),
         ]
     )
 
