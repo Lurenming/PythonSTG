@@ -285,6 +285,67 @@ class StageContext(SpellCardContext):
             **kwargs,
         )
 
+    # ==================== 激光 API ====================
+
+    def create_laser(self, x: float, y: float, angle: float,
+                     l1: float, l2: float, l3: float, width: float,
+                     texture_id: str = "laser1", color: Any = 1,
+                     on_time: int = 30, node: float = 0.0, head: float = 0.0):
+        """
+        创建直线激光（单位均为归一化坐标系）
+
+        Args:
+            x, y: 激光起点
+            angle: 角度（度，0=向右，90=向上）
+            l1/l2/l3: 头部/身体/尾部长度
+            width: 激光宽度
+            texture_id: 纹理ID（laser1~laser4）
+            color: 颜色索引(1~16)或颜色名（red/blue/...）
+            on_time: 展开时间（帧）
+            node/head: 起点/终点装饰节点大小
+        """
+        if self._laser_pool is None:
+            raise RuntimeError("LaserPool is not bound to current StageContext")
+
+        color_index = self._resolve_laser_color_index(color)
+        return self._laser_pool.create_laser(
+            x=x, y=y, angle=angle,
+            l1=l1, l2=l2, l3=l3, width=width,
+            texture_id=texture_id, color_index=color_index,
+            on_time=on_time, node=node, head=head
+        )
+
+    def create_bent_laser(self, x: float, y: float,
+                          length: int, width: float,
+                          color: Any = 1, on_time: int = 30,
+                          sample_rate: int = 4):
+        """
+        创建曲线激光（随后可通过 laser.update_head(x, y) 驱动头部轨迹）
+        """
+        if self._laser_pool is None:
+            raise RuntimeError("LaserPool is not bound to current StageContext")
+
+        color_index = self._resolve_laser_color_index(color)
+        return self._laser_pool.create_bent_laser(
+            x=x, y=y, length=length, width=width,
+            color_index=color_index, on_time=on_time,
+            sample_rate=sample_rate
+        )
+
+    def remove_laser(self, laser, off_time: int = 0):
+        """移除单条激光。off_time>0 时渐隐，否则 1 帧内关闭。"""
+        if laser is None:
+            raise ValueError("laser must not be None")
+        if not hasattr(laser, "turn_off"):
+            raise TypeError("laser must be a Laser/BentLaser object")
+        laser.turn_off(max(1, int(off_time)))
+
+    def clear_all_lasers(self):
+        """清空当前关卡中的所有激光。"""
+        if self._laser_pool is None:
+            raise RuntimeError("LaserPool is not bound to current StageContext")
+        self._laser_pool.clear()
+
     # ==================== 道具 / 分数 API ====================
 
     def spawn_drop(self, x: float, y: float, **kwargs):
@@ -386,3 +447,21 @@ class StageContext(SpellCardContext):
         base = self.BULLET_TYPE_MAP.get(bullet_type, "ball_mid")
         suffix = self.COLOR_MAP.get(color, "1")
         return f"{base}{suffix}"
+
+    def _resolve_laser_color_index(self, color: Any) -> int:
+        """激光颜色入参归一化：支持颜色名、数字字符串、整数索引。"""
+        if isinstance(color, str):
+            key = color.strip().lower()
+            if key.isdigit():
+                idx = int(key)
+            else:
+                mapped = self.COLOR_MAP.get(key)
+                if mapped is None:
+                    raise ValueError(f"Unknown laser color: {color}")
+                idx = int(mapped)
+        elif isinstance(color, (int, np.integer)):
+            idx = int(color)
+        else:
+            raise TypeError(f"Unsupported laser color type: {type(color)}")
+
+        return max(1, min(16, idx))

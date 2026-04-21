@@ -356,6 +356,7 @@ def initialize_game_objects(stage_class, audio_manager=None, background_renderer
 
     stage_manager.bind_engine(
         bullet_pool=bullet_pool,
+        laser_pool=laser_pool,
         player=player,
         audio_manager=audio_manager,
         item_pool=item_pool,

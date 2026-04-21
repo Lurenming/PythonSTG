@@ -124,6 +124,7 @@ class StageManager:
             bullet_pool=bullet_pool,
             player=player,
             enemy_manager=self.enemy_manager,
+            laser_pool=self._engine_refs.get('laser_pool'),
             audio_manager=self._audio_manager,
             item_pool=self._engine_refs.get('item_pool'),
             background_renderer=self._engine_refs.get('background_renderer'),

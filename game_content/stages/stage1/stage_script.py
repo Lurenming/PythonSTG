@@ -11,6 +11,7 @@ from game_content.stages.stage1.waves.stage_1_wave_3 import Stage1Wave3
 from game_content.stages.stage1.waves.stage_1_wave_4 import Stage1Wave4
 
 from game_content.stages.stage1.spellcards.nonspell_1 import LunaNonSpell1
+from game_content.stages.stage1.spellcards.spell_coal_inferno import CoalInfernoSpell
 from game_content.stages.stage1.spellcards.spell_gas_explosion import GasExplosionSpell
 from game_content.stages.stage1.spellcards.spell_1 import StarSpell1
 from game_content.stages.stage1.spellcards.spell_2 import SunnySpell1
@@ -35,6 +36,7 @@ class Stage1(StageScript):
         name="Luna Child",
         texture="luna",
         phases=[
+            spellcard(CoalInfernoSpell, "煤符「燃尽一切的巨大之煤」", hp=1500, time=55),
             spellcard(GasExplosionSpell, "烈符「瓦斯爆炸」", hp=1800, time=60),
         ]
     )

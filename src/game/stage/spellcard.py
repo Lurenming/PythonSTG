@@ -403,6 +403,22 @@ class SpellCardContext:
     def bullet_to_item(self, bullet):
         """将子弹转换为道具"""
         raise NotImplementedError
+
+    def create_laser(self, **kwargs):
+        """创建直线激光"""
+        raise NotImplementedError
+
+    def create_bent_laser(self, **kwargs):
+        """创建曲线激光"""
+        raise NotImplementedError
+
+    def remove_laser(self, laser, off_time: int = 0):
+        """移除激光"""
+        raise NotImplementedError
+
+    def clear_all_lasers(self):
+        """清除所有激光"""
+        raise NotImplementedError
     
     def get_player(self):
         """获取玩家"""

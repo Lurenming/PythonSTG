@@ -516,15 +516,10 @@ class CollisionManager:
         
         # 检查直线激光
         for i, laser in enumerate(lasers):
-            if not laser.alive or not laser.collision_enabled:
+            if not getattr(laser, 'alive', False):
                 continue
-            
-            if _check_laser_collision(
-                player_x, player_y, player_radius,
-                laser.x, laser.y, laser.angle,
-                laser.l1, laser.l2, laser.l3,
-                laser.width
-            ):
+
+            if laser.check_collision(player_x, player_y, player_radius):
                 return CollisionResult(
                     occurred=True,
                     index=i,
@@ -533,26 +528,14 @@ class CollisionManager:
         
         # 检查曲线激光
         for i, bent_laser in enumerate(bent_lasers):
-            if not bent_laser.alive:
+            if not getattr(bent_laser, 'alive', False):
                 continue
-            
-            path = bent_laser.get_path()
-            if len(path) < 2:
-                continue
-            
-            path_x = np.array([p[0] for p in path], dtype=np.float32)
-            path_y = np.array([p[1] for p in path], dtype=np.float32)
-            
-            if _check_bent_laser_collision(
-                player_x, player_y, player_radius,
-                path_x, path_y,
-                bent_laser.width,
-                len(path)
-            ):
+
+            if bent_laser.check_collision(player_x, player_y, player_radius):
                 return CollisionResult(
                     occurred=True,
                     index=len(lasers) + i,  # 曲线激光索引偏移
-                    position=path[0],
+                    position=(bent_laser.head_x, bent_laser.head_y),
                 )
         
         return CollisionResult(occurred=False)
