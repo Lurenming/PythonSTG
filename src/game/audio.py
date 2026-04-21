@@ -12,6 +12,8 @@
 """
 
 import os
+import hashlib
+import shutil
 from typing import Optional, Dict
 from enum import Enum
 
@@ -80,7 +82,7 @@ class AudioBank:
             return False
         
         try:
-            sound = get_audio_backend().load_sound(path)
+            sound = self._load_sound_with_fallback(path)
             if sound is None:
                 print(f"[AudioBank:{self.name}] 加载 SE 失败 '{name}'")
                 return False
@@ -90,6 +92,44 @@ class AudioBank:
         except Exception as e:
             print(f"[AudioBank:{self.name}] 加载 SE 失败 '{name}': {e}")
             return False
+
+    def _load_sound_with_fallback(self, path: str) -> Optional[BackendSound]:
+        """
+        优先直接加载，若路径包含非 ASCII 字符导致后端解码失败，
+        回退到 ASCII 缓存路径再加载。
+        """
+        backend = get_audio_backend()
+        if backend is None:
+            return None
+
+        sound = backend.load_sound(path)
+        if sound is not None:
+            return sound
+
+        # ASCII 路径也失败时通常是文件本身问题，避免无意义重试
+        try:
+            path.encode("ascii")
+            return None
+        except UnicodeEncodeError:
+            pass
+
+        try:
+            abs_path = os.path.abspath(path)
+            st = os.stat(abs_path)
+            key = f"{abs_path}|{st.st_mtime_ns}|{st.st_size}"
+            digest = hashlib.md5(key.encode("utf-8")).hexdigest()
+            ext = os.path.splitext(abs_path)[1] or ".wav"
+            cache_dir = os.path.join("userdata", "audio_cache")
+            os.makedirs(cache_dir, exist_ok=True)
+            cache_path = os.path.join(cache_dir, f"se_{digest}{ext}")
+
+            if not os.path.exists(cache_path):
+                shutil.copyfile(abs_path, cache_path)
+
+            return backend.load_sound(cache_path)
+        except Exception as e:
+            print(f"[AudioBank:{self.name}] SE ASCII 回退失败: {e}")
+            return None
     
     def load_se_directory(self, directory: str, prefix_strip: str = "se_",
                           ext: str = ".wav") -> int:

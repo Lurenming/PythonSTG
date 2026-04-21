@@ -1,0 +1,36 @@
+{
+  "texture": "Luna/boss01.png",
+  "sprites": {
+    "luna_0": {"rect": [  0,   0, 96, 96], "center": [48, 48]},
+    "luna_1": {"rect": [ 96,   0, 96, 96], "center": [48, 48]},
+    "luna_2": {"rect": [192,   0, 96, 96], "center": [48, 48]},
+    "luna_3": {"rect": [288,   0, 96, 96], "center": [48, 48]},
+
+    "luna_m0": {"rect": [  0,  96, 96, 96], "center": [48, 48]},
+    "luna_m1": {"rect": [ 96,  96, 96, 96], "center": [48, 48]},
+    "luna_m2": {"rect": [192,  96, 96, 96], "center": [48, 48]},
+    "luna_m3": {"rect": [288,  96, 96, 96], "center": [48, 48]},
+
+    "luna_sp0": {"rect": [  0, 192, 96, 96], "center": [48, 48]},
+    "luna_sp1": {"rect": [ 96, 192, 96, 96], "center": [48, 48]},
+    "luna_sp2": {"rect": [192, 192, 96, 96], "center": [48, 48]}
+  },
+  "animations": {
+    "luna_idle": {
+      "frames": ["luna_0", "luna_1", "luna_2", "luna_3"],
+      "fps": 8, "frame_duration": 0.125, "loop": true
+    },
+    "luna_move_left": {
+      "frames": ["luna_m0", "luna_m1"],
+      "fps": 10, "frame_duration": 0.1, "loop": true
+    },
+    "luna_move_right": {
+      "frames": ["luna_m2", "luna_m3"],
+      "fps": 10, "frame_duration": 0.1, "loop": true
+    },
+    "luna_special": {
+      "frames": ["luna_sp0", "luna_sp1", "luna_sp2"],
+      "fps": 10, "frame_duration": 0.1, "loop": true
+    }
+  }
+}

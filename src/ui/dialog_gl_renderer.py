@@ -73,6 +73,7 @@ class DialogGLRenderer:
         self._character_portrait_textures: Dict[str, moderngl.Texture] = {}
         self._portrait_configs = {}      # {"CharName": config dict}
         self._portrait_layout = self._load_portrait_layout()
+        self._scene_image_textures: Dict[str, moderngl.Texture] = {}
 
         # 渐变背景缓存（静态，不随每帧变化）
         self._gradient_arr: Optional[np.ndarray] = None
@@ -185,15 +186,19 @@ class DialogGLRenderer:
         """
         if dialog_state is None:
             return
-        if not hasattr(dialog_state, 'current_sentence') or dialog_state.current_sentence is None:
-            return
-
-        sentence = dialog_state.current_sentence
 
         # 启用 alpha 混合，禁用深度测试（2D 叠加渲染）
         self.ctx.enable(moderngl.BLEND)
         self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
         self.ctx.disable(moderngl.DEPTH_TEST)
+
+        # 可选场景图（在文字层之下）
+        self._render_scene_image(dialog_state)
+
+        if not hasattr(dialog_state, 'current_sentence') or dialog_state.current_sentence is None:
+            return
+
+        sentence = dialog_state.current_sentence
 
         # 先渲染立绘（在气泡下层）
         self._render_portraits(dialog_state)
@@ -342,6 +347,55 @@ class DialogGLRenderer:
         self.vbo.write(vertices.tobytes())
         self._dialog_texture.use(0)
         self.vao.render(moderngl.TRIANGLES)
+
+    def _render_scene_image(self, dialog_state):
+        """渲染对话层下方的场景图（可用于过场序列）。"""
+        scene_path = getattr(dialog_state, "scene_image_path", None)
+        if not scene_path:
+            return
+
+        texture = self._get_scene_image_texture(scene_path)
+        if texture is None:
+            return
+
+        gx, gy, gw, gh = self.game_viewport
+        alpha = self._clamp01(float(getattr(dialog_state, "scene_image_alpha", 1.0) or 1.0))
+        tex_w, tex_h = texture.size
+        if tex_w <= 0 or tex_h <= 0:
+            return
+
+        scale = min(gw / float(tex_w), gh / float(tex_h))
+        draw_w = max(1, int(tex_w * scale))
+        draw_h = max(1, int(tex_h * scale))
+        draw_x = gx + (gw - draw_w) // 2
+        draw_y = gy + (gh - draw_h) // 2
+        self._draw_portrait_gl(texture, draw_x, draw_y, draw_w, draw_h, saturation=1.0, alpha=alpha)
+
+    def _get_scene_image_texture(self, scene_path: str) -> Optional[moderngl.Texture]:
+        """按需加载并缓存场景图纹理。"""
+        full_path = scene_path
+        if not os.path.isabs(full_path):
+            full_path = os.path.abspath(full_path)
+        cache_key = os.path.normpath(full_path)
+
+        cached = self._scene_image_textures.get(cache_key)
+        if cached is not None:
+            return cached
+
+        if not os.path.exists(cache_key):
+            return None
+
+        try:
+            img = load_image_surface(cache_key)
+            w, h = img.get_size()
+            data = img.to_bytes("RGBA", flip_y=True)
+            tex = self.ctx.texture((w, h), 4, data)
+            tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
+            self._scene_image_textures[cache_key] = tex
+            return tex
+        except Exception as e:
+            print(f"[DialogGLRenderer] Failed to load scene image {cache_key}: {e}")
+            return None
 
     def _render_portraits(self, dialog_state):
         """渲染角色立绘（支持左右双人同屏）"""
@@ -767,3 +821,9 @@ class DialogGLRenderer:
             except Exception:
                 pass
         self._character_portrait_textures.clear()
+        for tex in self._scene_image_textures.values():
+            try:
+                tex.release()
+            except Exception:
+                pass
+        self._scene_image_textures.clear()

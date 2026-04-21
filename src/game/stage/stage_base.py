@@ -25,6 +25,30 @@ class BossDef:
     animations: dict = field(default_factory=dict)
 
 
+class _ImageOverlayRenderer:
+    """用于关卡脚本中按帧播放静态图片序列。"""
+
+    def __init__(self):
+        self.current_sentence = None
+        self.scene_image_path: Optional[str] = None
+        self.scene_image_alpha: float = 1.0
+        self.active_speaker_position = None
+        self.portrait_slots = {"left": None, "right": None}
+        self._active = True
+
+    def set_image(self, image_path: str):
+        self.scene_image_path = image_path
+        self.current_sentence = None
+
+    def clear(self):
+        self._active = False
+        self.scene_image_path = None
+        self.current_sentence = None
+
+    def is_active(self) -> bool:
+        return self._active
+
+
 class StageScript:
     """
     程序化关卡脚本基类
@@ -296,6 +320,38 @@ class StageScript:
             if text_renderer:
                 text_renderer.update()
             yield
+
+    @types.coroutine
+    def play_image_sequence(
+        self,
+        image_paths,
+        frame_duration: int = 45,
+    ):
+        """
+        依次播放图片序列（占用对话层渲染通道）。
+
+        Args:
+            image_paths: 图片路径列表（按传入顺序播放）
+            frame_duration: 每张图显示帧数
+        """
+        if self._debug_skip_target:
+            return
+        if not image_paths:
+            return
+
+        renderer = _ImageOverlayRenderer()
+        self._current_dialog_renderer = renderer
+        duration = max(1, int(frame_duration))
+
+        try:
+            for image_path in image_paths:
+                renderer.set_image(image_path)
+
+                for _ in range(duration):
+                    yield
+        finally:
+            renderer.clear()
+            self._current_dialog_renderer = None
 
     # ==================== 等待 API ====================
 

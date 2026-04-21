@@ -2,6 +2,8 @@
 Stage 1 - 三月精
 """
 
+import os
+
 from src.game.stage.stage_base import StageScript, BossDef
 from src.game.stage.boss_base import nonspell, spellcard
 
@@ -56,6 +58,29 @@ class Stage1(StageScript):
 
     async def run(self):
         if not self.DEBUG_BOOKMARK:
+            self.ctx.stop_bgm()
+            intro_dir = os.path.join("game_content", "stages", "stage1", "images")
+            if os.path.isdir(intro_dir):
+                intro_plan = [
+                    ("start0.png", "大笑1"),
+                    ("start1.png", "大笑1"),
+                    ("start2.png", None),
+                    ("start3.png", None),
+                    ("start4.png", None),
+                    ("start5.png", None),
+                    ("start6.png", "大笑2"),
+                    ("start7.png", None)
+                ]
+                for image_name, se_name in intro_plan:
+                    image_path = os.path.join(intro_dir, image_name)
+                    if not os.path.exists(image_path):
+                        continue
+                    if se_name:
+                        self.ctx.play_se(se_name, volume=1.0)
+                    await self.play_image_sequence([image_path], frame_duration=180)
+
+            await self.play_bgm(self.bgm)
+
             await self.play_dialogue([
                 {"character": "Luna_Child",    "name": "露娜？CUP？？", "position": "left",  "text": "“厚积薄发、开物成务”，我在说什么东西啊？", "portrait": "Happy"},
                 {"character": "Star_Sapphire", "name": "斯塔？GBGBG?", "position": "right", "text": "“艰苦朴素、求真务实”，哦对了，北地人形", "portrait": "Happy"},

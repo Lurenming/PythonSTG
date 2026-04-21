@@ -1,0 +1,66 @@
+{
+  "texture": "Star/boss03.png",
+  "sprites": {
+    "sunny_0":  {"rect": [  0,   0, 96, 96], "center": [48, 48]},
+    "sunny_1":  {"rect": [ 96,   0, 96, 96], "center": [48, 48]},
+    "sunny_2":  {"rect": [192,   0, 96, 96], "center": [48, 48]},
+    "sunny_3":  {"rect": [288,   0, 96, 96], "center": [48, 48]},
+
+    "sunny_m0": {"rect": [  0,  96, 96, 96], "center": [48, 48]},
+    "sunny_m1": {"rect": [ 96,  96, 96, 96], "center": [48, 48]},
+    "sunny_m2": {"rect": [192,  96, 96, 96], "center": [48, 48]},
+    "sunny_m3": {"rect": [288,  96, 96, 96], "center": [48, 48]},
+
+    "sunny_sp0": {"rect": [  0, 192, 96, 96], "center": [48, 48]},
+    "sunny_sp1": {"rect": [ 96, 192, 96, 96], "center": [48, 48]},
+    "sunny_sp2": {"rect": [192, 192, 96, 96], "center": [48, 48]},
+
+    "star_sp0": {"rect": [288, 192, 96, 96], "center": [48, 48]},
+    "star_sp1": {"rect": [384, 192, 96, 96], "center": [48, 48]},
+
+    "star_0": {"rect": [  0, 288, 96, 96], "center": [48, 48]},
+    "star_1": {"rect": [ 96, 288, 96, 96], "center": [48, 48]},
+    "star_2": {"rect": [192, 288, 96, 96], "center": [48, 48]},
+    "star_3": {"rect": [288, 288, 96, 96], "center": [48, 48]},
+    "star_4": {"rect": [384, 288, 96, 96], "center": [48, 48]},
+
+    "star_m0": {"rect": [  0, 384, 96, 96], "center": [48, 48]},
+    "star_m1": {"rect": [ 96, 384, 96, 96], "center": [48, 48]},
+    "star_m2": {"rect": [192, 384, 96, 96], "center": [48, 48]},
+    "star_m3": {"rect": [288, 384, 96, 96], "center": [48, 48]}
+  },
+  "animations": {
+    "sunny_idle": {
+      "frames": ["sunny_0", "sunny_1", "sunny_2", "sunny_3"],
+      "fps": 8, "frame_duration": 0.125, "loop": true
+    },
+    "sunny_move_left": {
+      "frames": ["sunny_m0", "sunny_m1"],
+      "fps": 10, "frame_duration": 0.1, "loop": true
+    },
+    "sunny_move_right": {
+      "frames": ["sunny_m2", "sunny_m3"],
+      "fps": 10, "frame_duration": 0.1, "loop": true
+    },
+    "sunny_special": {
+      "frames": ["sunny_sp0", "sunny_sp1", "sunny_sp2"],
+      "fps": 10, "frame_duration": 0.1, "loop": true
+    },
+    "star_idle": {
+      "frames": ["star_0", "star_1", "star_2", "star_3", "star_4"],
+      "fps": 8, "frame_duration": 0.125, "loop": true
+    },
+    "star_move_left": {
+      "frames": ["star_m0", "star_m1"],
+      "fps": 10, "frame_duration": 0.1, "loop": true
+    },
+    "star_move_right": {
+      "frames": ["star_m2", "star_m3"],
+      "fps": 10, "frame_duration": 0.1, "loop": true
+    },
+    "star_special": {
+      "frames": ["star_sp0", "star_sp1"],
+      "fps": 8, "frame_duration": 0.125, "loop": true
+    }
+  }
+}
