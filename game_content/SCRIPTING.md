@@ -385,8 +385,9 @@ self.time_remaining  # float, 剩余时间（秒）
 | `Star_Sapphire` | `Happy` `Very_Happy` `Sad` `Anger` `embarrass` `Fail_sad` `Fail_wtf` |
 | `Kaenbyou_Rin` | `Happy` `Very_happy` `Sad` `Anger` |
 | `Toutetu_Yuma` | `Happy` `VeryHappy` `Sad` `anger` |
+| `Sunny_Milk` | `Happy` `VeryHappy` `Sad` `Anger` `Fail_Happy` `Fail_sad` `Fail_Veryhappy` |
 
-`Luna_Child` / `Sunny_Milk` 暂无立绘文件，写了也不显示（静默跳过，不报错）。
+`Luna_Child` 暂无立绘文件，写了也不显示（静默跳过，不报错）。
 
 ---
 

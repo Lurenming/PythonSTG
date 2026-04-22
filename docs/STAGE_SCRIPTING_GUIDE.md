@@ -300,7 +300,7 @@ self.fire_arc(
 self.fire_at_player(
     speed=3.0,
     offset_angle=0,        # 偏移角度（度）
-    bullet_type="arrowhead",
+    bullet_type="arrow_m",
     color="red",
 )
 ```
@@ -481,7 +481,7 @@ from src.game.bullet import CURVE_SIN_SPEED
 # 波动速度弹：速度在 1.0 ~ 3.0 之间正弦波动
 self.fire(
     angle=-90, speed=2.0,
-    bullet_type="rice", color="cyan",
+    bullet_type="grain_a", color="cyan",
     curve_type=CURVE_SIN_SPEED,
     curve_params=(1.0, 3.14, 0.0, 2.0),  # amp=1, freq=π, phase=0, base=2
 )
@@ -493,7 +493,7 @@ from src.game.bullet import CURVE_SIN_ANGLE
 # 蛇行弹：运动角度正弦摆动
 self.fire(
     angle=-90, speed=2.0,
-    bullet_type="scale", color="green",
+    bullet_type="kite", color="green",
     curve_type=CURVE_SIN_ANGLE,
     curve_params=(2.0, 5.0, 0.0, 0.0),  # amp=2 rad/s, freq=5
 )
@@ -601,7 +601,7 @@ async def run(self):
         self.fire_circle(
             count=8, speed=1.5,
             start_angle=angle,
-            bullet_type="star_m", color="yellow",
+            bullet_type="star_l", color="yellow",
             spin=720,  # 每秒自转 2 圈
         )
         angle += 15
@@ -641,7 +641,7 @@ async def run(self):
         for i in range(12):
             self.fire(
                 angle=-90, speed=2.0,
-                bullet_type="rice", color="cyan",
+                bullet_type="grain_a", color="cyan",
                 curve_type=CURVE_SIN_ANGLE,
                 curve_params=(3.0, 4.0, i * 0.5, 0.0),  # 每条蛇相位偏移
             )
@@ -659,7 +659,7 @@ async def run(self):
                 theta=i * 30,
                 radial_speed=0.15,
                 angular_velocity=60,
-                bullet_type="scale", color="purple",
+                bullet_type="kite", color="purple",
             )
         await self.wait(120)
 ```
@@ -691,15 +691,20 @@ async def run(self):
 | `ball_s` | 小弹 |
 | `ball_m` | 中弹 |
 | `ball_l` | 大弹 |
-| `rice` | 米弹 |
-| `scale` | 鳞弹 |
-| `arrowhead` | 箭头弹 |
+| `ball_light` | 光晕弹 / 发光玉 |
+| `grain_a` / `b` / `c` | 米弹 / 谷物弹 |
+| `kite` | 鳞弹 / 菱形弹 |
+| `arrow_s` / `m` / `l` | 箭头弹 / 札弹 |
 | `knife` | 刀弹 |
 | `star_s` | 小星弹 |
-| `star_m` | 中星弹 |
-| `bullet` | 子弹型 |
-| `oval` | 椭圆弹 |
-| `needle` | 针弹 |
+| `star_l` | 大星弹 |
+| `gun` | 直弹 / 子弹 |
+| `ellipse` | 椭圆弹 |
+| `square` | 方弹 |
+| `butterfly` | 蝶星弹 |
+| `heart` | 心形弹 |
+| `mildew` | 霉菌弹 / 细菌形弹 |
+| `silence` | 寂静弹 / 轮廓弹 |
 
 ### 颜色别名
 

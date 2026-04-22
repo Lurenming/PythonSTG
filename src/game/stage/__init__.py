@@ -169,6 +169,12 @@ class StageManager:
         for _ in range(120):
             yield
 
+        # 自动加载下一关（在 run() 末尾设置 self._next_stage_class = NextStageClass）
+        next_stage_cls = getattr(stage, '_next_stage_class', None)
+        if next_stage_cls is not None:
+            print(f"[StageManager] 自动加载下一关: {next_stage_cls.__name__}")
+            self.load_stage(next_stage_cls)
+
     @staticmethod
     def _find_stage_directory(stage_class):
         """

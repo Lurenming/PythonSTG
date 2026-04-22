@@ -43,6 +43,10 @@ from src.ui.hud import load_hud_layout
 from src.ui.bitmap_font import get_font_manager
 from game_content.stages.stage1.stage_script import Stage1
 from game_content.stages.stage1.stage_asset_preview import Stage1AssetPreview
+from game_content.stages.stage2.stage_script import Stage2
+
+# 所有正式关卡（按通关顺序），debug 菜单和关卡选择器用此列表
+ALL_STAGES = [Stage1, Stage2]
 
 # ===== Debug 模式 =====
 DEBUG_MODE = "--debug" in sys.argv
@@ -63,6 +67,7 @@ def resolve_stage_class():
     stage_arg = (_get_cli_option("--stage=") or "stage1").strip().lower()
     stage_map = {
         "stage1": Stage1,
+        "stage2": Stage2,
         "asset_preview": Stage1AssetPreview,
         "preview": Stage1AssetPreview,
         "assets": Stage1AssetPreview,
@@ -192,6 +197,69 @@ def build_debug_menu(stage_class):
             })
 
     return entries
+
+
+def run_stage_select_menu(window, ctx, screen_size, stage_classes, current_class):
+    """Debug: 在进入书签菜单之前让用户选择关卡。
+    按 Z 确认选择，ESC 跳过（保持 current_class）。
+    """
+    from src.ui.main_menu_renderer import MainMenuRenderer
+    from src.core.window import FrameClock, EVENT_QUIT, EVENT_KEYDOWN
+    from src.core.input_manager import KEY_UP, KEY_DOWN, KEY_z, KEY_ESCAPE
+
+    entries = list(stage_classes)
+    labels = [f"{cls.name}  ({cls.id})" for cls in entries]
+    layout = {
+        "bg_gradient": {"top": [10, 10, 25], "bottom": [25, 25, 50]},
+        "title": {
+            "text": "Debug: 选择关卡",
+            "font_size": 36,
+            "color": [180, 220, 255],
+            "y_ratio": 0.08,
+        },
+        "options": [{"text": lbl} for lbl in labels],
+        "option_spacing": 36,
+        "option_font_size": 26,
+        "option_colors": {"normal": [160, 160, 200], "selected": [255, 255, 120]},
+        "hint": {
+            "text": "↑↓ 选择关卡   Z 确认   ESC 跳过",
+            "font_size": 18,
+            "color": [140, 140, 140],
+            "y_offset": -30,
+        },
+    }
+
+    # 默认选中当前关卡
+    try:
+        selected_index = entries.index(current_class)
+    except ValueError:
+        selected_index = 0
+
+    renderer = MainMenuRenderer(ctx, screen_size[0], screen_size[1])
+    clock = FrameClock()
+
+    while True:
+        clock.tick(60)
+        for event in window.poll_events():
+            if event['type'] == EVENT_QUIT:
+                renderer.cleanup()
+                return current_class
+            if event['type'] == EVENT_KEYDOWN:
+                if event['key'] == KEY_UP:
+                    selected_index = (selected_index - 1) % len(entries)
+                elif event['key'] == KEY_DOWN:
+                    selected_index = (selected_index + 1) % len(entries)
+                elif event['key'] == KEY_z:
+                    renderer.cleanup()
+                    return entries[selected_index]
+                elif event['key'] == KEY_ESCAPE:
+                    renderer.cleanup()
+                    return current_class
+
+        ctx.viewport = (0, 0, screen_size[0], screen_size[1])
+        ctx.clear(0.0, 0.0, 0.0)
+        renderer.render(selected_index, layout=layout)
+        window.swap_buffers()
 
 
 def run_debug_menu(window, ctx, screen_size, stage_class):
@@ -505,6 +573,13 @@ def main():
             game_audio.load_defaults()
             audio_manager = AudioManager(game_audio)
 
+            # ===== Debug: 关卡选择 + 书签菜单（在初始化关卡之前） =====
+            debug_target = None
+            if DEBUG_MODE:
+                selected_stage_class = run_stage_select_menu(
+                    window, ctx, screen_size, ALL_STAGES, selected_stage_class)
+                debug_target = run_debug_menu(window, ctx, screen_size, selected_stage_class)
+
             _show_loading("Initializing stage...", 0.95)
             player, bullet_pool, laser_pool, item_pool, stage_manager = initialize_game_objects(
                 stage_class=selected_stage_class,
@@ -514,11 +589,8 @@ def main():
 
             _show_loading("Ready.", 1.0)
 
-            # ===== Debug: 显示 GUI 跳转菜单 =====
-            if DEBUG_MODE:
-                debug_target = run_debug_menu(window, ctx, screen_size, selected_stage_class)
-                if debug_target:
-                    stage_manager.debug_skip_to = debug_target
+            if debug_target:
+                stage_manager.debug_skip_to = debug_target
 
             # 加载高分记录
             item_pool.stats.load_hiscore()

@@ -12,6 +12,7 @@ from game_content.stages.stage1.waves.stage_1_wave_2 import Stage1Wave2
 from game_content.stages.stage1.waves.stage_1_wave_3 import Stage1Wave3
 from game_content.stages.stage1.waves.stage_1_wave_4 import Stage1Wave4
 
+from game_content.stages.stage2.stage_script import Stage2
 from game_content.stages.stage1.spellcards.spell_coal_inferno import CoalInfernoSpell
 from game_content.stages.stage1.spellcards.spell_gas_explosion import GasExplosionSpell
 from game_content.stages.stage1.spellcards.spell_mysterious_creature import MysteriousCreatureSpell
@@ -95,6 +96,15 @@ class Stage1(StageScript):
         await self.wait(20)
 
         await self.play_dialogue([
+            {"character": "narrator", "name": "", "position": "center", "text": "（猫来到了沙矿）", "portrait": ""},
+            {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "太危险了，刚才好像有个有股奶味的人要催眠我。难道就是那个人干的？", "portrait": "Happy"},
+            {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "……好像不是，主催疑似是学院路校区的。我从地下直接钻过去吧。", "portrait": "Happy"},
+            {"character": "narrator", "name": "", "position": "center", "text": "（猫在地下）", "portrait": ""},
+            {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "我看定位差不多就是这。头上有个井盖？", "portrait": "Happy"},
+            {"character": "narrator", "name": "", "position": "center", "text": "（矿院井盖）", "portrait": ""},
+            {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "应该就是了。看我出去研究一下。", "portrait": "Happy"},
+            {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "什么叫北京语言大学？", "portrait": "Happy"},
+            {"character": "narrator", "name": "", "position": "center", "text": "（猫到了矿门口）", "portrait": ""},
             {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "怎么矿院井盖出现在那？", "portrait": "Happy"},
             {"character": "Sunny_Milk",   "name": "桑尼", "position": "left",  "text": "让我们回避这个悲伤的话题。", "portrait": "Happy"},
             {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "咦？我在这里站着不动都能抓到桑尼哦，嚯嚯嚯，夸张哦。", "portrait": "Happy"},
@@ -112,3 +122,19 @@ class Stage1(StageScript):
         ])
 
         await self.run_boss(self.boss)
+
+        await self.play_dialogue([
+            {"character": "Kaenbyou_Rin", "name": "猫",  "position": "right", "text": "火车就是烧煤的，巨大的煤也救不了你。",                                     "portrait": "Happy"},
+            {"character": "Sunny_Milk",   "name": "桑尼", "position": "left",  "text": "现在哪还有烧煤的火车啊？",                                                  "portrait": "Fail_Happy"},
+            {"character": "Kaenbyou_Rin", "name": "猫",  "position": "right", "text": "所以幻想入了啊。",                                                           "portrait": "Happy"},
+            {"character": "Sunny_Milk",   "name": "桑尼", "position": "left",  "text": "不对，你那个火车根本就不是这个火车吧？",                                     "portrait": "Fail_Happy"},
+            {"character": "Kaenbyou_Rin", "name": "猫",  "position": "right", "text": "那你别管，我反正也是负责烧东西的，烧什么你别问。",                            "portrait": "Anger"},
+            {"character": "Sunny_Milk",   "name": "桑尼", "position": "left",  "text": "可以，我认可了。",                                                           "portrait": "Fail_sad"},
+            {"character": "Kaenbyou_Rin", "name": "猫",  "position": "right", "text": "我饿了，我们吃什么？",                                                       "portrait": "Happy"},
+            {"character": "Sunny_Milk",   "name": "桑尼", "position": "left",  "text": "是啊吃什么？",                                                              "portrait": "Fail_sad"},
+            {"character": "Kaenbyou_Rin", "name": "猫",  "position": "right", "text": "能不能带我吃食堂？",                                                         "portrait": "Very_happy"},
+            {"character": "Sunny_Milk",   "name": "桑尼", "position": "left",  "text": "这矿大突然就不想上了，你矿食堂给我吃想家了。我还是带你吃门口的老麻抄手吧。", "portrait": "Fail_sad"},
+        ])
+
+        # Stage 1 通关 → 自动进入 Stage 2
+        self._next_stage_class = Stage2

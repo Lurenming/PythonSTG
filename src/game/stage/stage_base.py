@@ -95,6 +95,10 @@ class StageScript:
         # 格式: {"type": "boss"/"midboss", "phase": 0} 或 None
         self._debug_skip_target: Optional[dict] = None
 
+        # ===== 关卡链式跳转 =====
+        # 在 run() 末尾赋值，StageManager 会在清场后自动加载
+        self._next_stage_class = None
+
     @property
     def time(self) -> int:
         """当前帧数"""
