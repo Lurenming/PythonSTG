@@ -5,17 +5,17 @@ Stage 1 - 三月精
 import os
 
 from src.game.stage.stage_base import StageScript, BossDef
-from src.game.stage.boss_base import nonspell, spellcard
+from src.game.stage.boss_base import spellcard
 
 from game_content.stages.stage1.waves.stage_1_wave_1 import Stage1Wave1
 from game_content.stages.stage1.waves.stage_1_wave_2 import Stage1Wave2
 from game_content.stages.stage1.waves.stage_1_wave_3 import Stage1Wave3
 from game_content.stages.stage1.waves.stage_1_wave_4 import Stage1Wave4
 
-from game_content.stages.stage1.spellcards.nonspell_1 import LunaNonSpell1
 from game_content.stages.stage1.spellcards.spell_coal_inferno import CoalInfernoSpell
 from game_content.stages.stage1.spellcards.spell_gas_explosion import GasExplosionSpell
-from game_content.stages.stage1.spellcards.spell_1 import StarSpell1
+from game_content.stages.stage1.spellcards.spell_mysterious_creature import MysteriousCreatureSpell
+from game_content.stages.stage1.spellcards.spell_wandering_university import WanderingUniversitySpell
 from game_content.stages.stage1.spellcards.spell_2 import SunnySpell1
 
 
@@ -33,24 +33,16 @@ class Stage1(StageScript):
 
     # ===== Boss 定义 =====
 
-    midboss = BossDef(
-        id="luna_midboss",
-        name="Luna Child",
-        texture="luna",
-        phases=[
-            spellcard(CoalInfernoSpell, "煤符「燃尽一切的巨大之煤」", hp=1500, time=55),
-            spellcard(GasExplosionSpell, "烈符「瓦斯爆炸」", hp=1800, time=60),
-        ]
-    )
-
     boss = BossDef(
         id="star_boss",
         name="Star Sapphire",
         texture="star",
         phases=[
-            nonspell(LunaNonSpell1, hp=600, time=25),
-            spellcard(StarSpell1, "星符「???」", hp=1000, time=60),
+            spellcard(CoalInfernoSpell, "煤符「燃尽一切的巨大之煤」", hp=1500, time=55),
+            spellcard(GasExplosionSpell, "烈符「瓦斯爆炸」", hp=1800, time=60),
+            spellcard(MysteriousCreatureSpell, "生符「食堂的神秘小生物」", hp=2000, time=60),
             spellcard(SunnySpell1, "光符「反射在井盖上的矿院幻影」", hp=1200, time=60),
+            spellcard(WanderingUniversitySpell, "润符「辗转全国的百年老校」", hp=1600, time=60),
         ]
     )
 
@@ -112,8 +104,6 @@ class Stage1(StageScript):
             {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "？我真求你了。看来必须得让你冷静一下了。", "portrait": "Anger"},
             {"character": "Sunny_Milk",   "name": "桑尼", "position": "left",  "text": "我不怕你，因为我们矿大有巨大的煤。", "portrait": "Anger"},
         ])
-
-        await self.run_boss(self.midboss, is_midboss=True)
 
         await self.play_dialogue([
             {"character": "Hinanawi_Tenshi", "name": "天子",       "position": "left",  "text": "打倒了先头部队，接下来是谁？",     "portrait": "Happy"},
