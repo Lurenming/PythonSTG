@@ -139,21 +139,19 @@ class SpellCard(ABC):
     
     # ==================== 子类实现 ====================
     
-    def setup(self) -> Generator:
+    async def setup(self):
         """
         符卡开始前的准备（可选覆盖）
         例如：Boss 移动到特定位置
-        使用 yield 暂停
         """
-        return
-        yield  # 使其成为生成器
-    
+        pass
+
     @abstractmethod
-    def run(self) -> Generator:
+    async def run(self):
         """
         主弹幕逻辑（必须实现）
         使用 while True 循环发射弹幕
-        使用 yield from self.wait(frames) 等待
+        使用 await self.wait(frames) 等待
         """
         pass
     

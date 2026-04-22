@@ -1,3 +1,1 @@
-"""
-Stage 3 - TODO
-"""
+from .stage_script import Stage3

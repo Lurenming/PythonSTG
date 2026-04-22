@@ -44,9 +44,10 @@ from src.ui.bitmap_font import get_font_manager
 from game_content.stages.stage1.stage_script import Stage1
 from game_content.stages.stage1.stage_asset_preview import Stage1AssetPreview
 from game_content.stages.stage2.stage_script import Stage2
+from game_content.stages.stage3.stage_script import Stage3
 
 # 所有正式关卡（按通关顺序），debug 菜单和关卡选择器用此列表
-ALL_STAGES = [Stage1, Stage2]
+ALL_STAGES = [Stage1, Stage2, Stage3]
 
 # ===== Debug 模式 =====
 DEBUG_MODE = "--debug" in sys.argv
@@ -68,6 +69,7 @@ def resolve_stage_class():
     stage_map = {
         "stage1": Stage1,
         "stage2": Stage2,
+        "stage3": Stage3,
         "asset_preview": Stage1AssetPreview,
         "preview": Stage1AssetPreview,
         "assets": Stage1AssetPreview,
