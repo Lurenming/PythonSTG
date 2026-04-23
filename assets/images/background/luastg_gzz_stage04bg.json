@@ -1,0 +1,207 @@
+{
+  "name": "luastg_gzz_stage04bg",
+  "description": "Editable draft generated from LuaSTG background 'gzz_stage04bg'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "gzz_stage04bg",
+    "lua": "gzz_stage04bg.lua"
+  },
+  "textures": {
+    "gzz_stage04a": {
+      "path": "gzz_stage04bg/gzz_stage04a.png",
+      "description": "Imported from gzz_stage04bg/gzz_stage04a.png"
+    },
+    "gzz_stage04b": {
+      "path": "gzz_stage04bg/gzz_stage04b.png",
+      "description": "Imported from gzz_stage04bg/gzz_stage04b.png"
+    },
+    "gzz_stage04c": {
+      "path": "gzz_stage04bg/gzz_stage04c.png",
+      "description": "Imported from gzz_stage04bg/gzz_stage04c.png"
+    },
+    "gzz_stage04e": {
+      "path": "gzz_stage04bg/gzz_stage04e.png",
+      "description": "Imported from gzz_stage04bg/gzz_stage04e.png"
+    },
+    "gzz_stage04f": {
+      "path": "gzz_stage04bg/gzz_stage04f.png",
+      "description": "Imported from gzz_stage04bg/gzz_stage04f.png"
+    },
+    "gzz_stage04g": {
+      "path": "gzz_stage04bg/gzz_stage04g.png",
+      "description": "Imported from gzz_stage04bg/gzz_stage04g.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      1.0300000000000011,
+      -1.8600000000000003,
+      -2.0
+    ],
+    "at": [
+      -1.1900000000000002,
+      2.74,
+      2.5500000000000007
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.55,
+    "z_near": 1.1,
+    "z_far": 50.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 8.6,
+    "end": 19.8
+  },
+  "scroll": {
+    "base_speed": 0.41100000000000014,
+    "direction": [
+      -2.0,
+      3.0
+    ]
+  },
+  "layers": [
+    {
+      "name": "gzz_stage04a",
+      "texture": "gzz_stage04a",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "gzz_stage04b",
+      "texture": "gzz_stage04b",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "gzz_stage04c",
+      "texture": "gzz_stage04c",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "gzz_stage04e",
+      "texture": "gzz_stage04e",
+      "z_order": 3,
+      "z_depth": -0.15000000000000002,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "gzz_stage04f",
+      "texture": "gzz_stage04f",
+      "z_order": 4,
+      "z_depth": -0.2,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "gzz_stage04g",
+      "texture": "gzz_stage04g",
+      "z_order": 5,
+      "z_depth": -0.25,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

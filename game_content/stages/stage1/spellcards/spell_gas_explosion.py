@@ -1,6 +1,7 @@
 import random
 
 from src.game.stage.spellcard import SpellCard
+from src.game.bullet.tags import TAG_BOMB_PROTECTED_NODE
 
 
 class GasExplosionSpell(SpellCard):
@@ -26,6 +27,7 @@ class GasExplosionSpell(SpellCard):
             speed=0.0,
             bullet_type="mildew",
             color="darkcyan",
+            tag=TAG_BOMB_PROTECTED_NODE,
         )
         nodes.append({"idx": idx, "x": x, "y": y, "born": self.time})
 

@@ -1,0 +1,129 @@
+{
+  "name": "luastg_temple3",
+  "description": "Editable draft generated from LuaSTG background 'temple3'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "temple3",
+    "lua": "temple3.lua"
+  },
+  "textures": {
+    "parchmnt": {
+      "path": "temple3/parchmnt.jpg",
+      "description": "Imported from temple3/parchmnt.jpg"
+    },
+    "parchmnt_2": {
+      "path": "temple3/parchmnt.png",
+      "description": "Imported from temple3/parchmnt.png"
+    },
+    "reimut": {
+      "path": "temple3/reimut.bmp",
+      "description": "Imported from temple3/reimut.bmp"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      2.5,
+      -4.0
+    ],
+    "at": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.6,
+    "z_near": 1.0,
+    "z_far": 10.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 5.0,
+    "end": 10.0
+  },
+  "scroll": {
+    "base_speed": 0.003,
+    "direction": [
+      0,
+      1
+    ]
+  },
+  "layers": [
+    {
+      "name": "parchmnt",
+      "texture": "parchmnt",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "parchmnt_2",
+      "texture": "parchmnt_2",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "reimut",
+      "texture": "reimut",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

@@ -20,6 +20,7 @@ import math
 import random
 import os
 from src.game.stage.spellcard import SpellCard
+from src.game.bullet.tags import TAG_BOMB_PROTECTED_TRAIN
 
 # ── 校正因子 ────────────────────────────────────────
 _Y_CORR = 448 / 384   # 1.1667：背景→子弹坐标系换算
@@ -189,6 +190,7 @@ class LunaSpell2(SpellCard):
                     bullet_type='ellipse',
                     color=train['color'],
                     render_angle=render_a,
+                    tag=TAG_BOMB_PROTECTED_TRAIN,
                 )
 
                 # 高频向后方散发类似粒子火花一样的极速弹幕

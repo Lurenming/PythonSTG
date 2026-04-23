@@ -1,0 +1,207 @@
+{
+  "name": "luastg_BG_A1",
+  "description": "Editable draft generated from LuaSTG background 'BG_A1'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "BG_A1",
+    "lua": "BG_A1.lua"
+  },
+  "textures": {
+    "bg_a1_a": {
+      "path": "BG_A1/BG_A1_a.png",
+      "description": "Imported from BG_A1/BG_A1_a.png"
+    },
+    "bg_a1_b": {
+      "path": "BG_A1/BG_A1_b.png",
+      "description": "Imported from BG_A1/BG_A1_b.png"
+    },
+    "bg_a1_black": {
+      "path": "BG_A1/BG_A1_BLACK.png",
+      "description": "Imported from BG_A1/BG_A1_BLACK.png"
+    },
+    "bg_a1_c": {
+      "path": "BG_A1/BG_A1_c.png",
+      "description": "Imported from BG_A1/BG_A1_c.png"
+    },
+    "bg_a1_d": {
+      "path": "BG_A1/BG_A1_d.png",
+      "description": "Imported from BG_A1/BG_A1_d.png"
+    },
+    "bg_a1_e": {
+      "path": "BG_A1/BG_A1_e.png",
+      "description": "Imported from BG_A1/BG_A1_e.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      24.0,
+      -16.3
+    ],
+    "at": [
+      0.0,
+      -2.5,
+      1.3
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.6,
+    "z_near": 1.0,
+    "z_far": 100.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 0.0,
+    "end": 26.0
+  },
+  "scroll": {
+    "base_speed": 0.003,
+    "direction": [
+      0,
+      1
+    ]
+  },
+  "layers": [
+    {
+      "name": "bg_a1_a",
+      "texture": "bg_a1_a",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "bg_a1_b",
+      "texture": "bg_a1_b",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "bg_a1_black",
+      "texture": "bg_a1_black",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "bg_a1_c",
+      "texture": "bg_a1_c",
+      "z_order": 3,
+      "z_depth": -0.15000000000000002,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "bg_a1_d",
+      "texture": "bg_a1_d",
+      "z_order": 4,
+      "z_depth": -0.2,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "bg_a1_e",
+      "texture": "bg_a1_e",
+      "z_order": 5,
+      "z_depth": -0.25,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

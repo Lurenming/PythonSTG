@@ -1,6 +1,7 @@
 import random
 
 from src.game.stage.spellcard import SpellCard
+from src.game.bullet.tags import TAG_BOMB_PROTECTED_NODE
 
 
 class MysteriousCreatureSpell(SpellCard):
@@ -48,6 +49,7 @@ class MysteriousCreatureSpell(SpellCard):
                     angle=0.0, speed=0.0,
                     bullet_type="mildew",
                     color=colors[(col + row) % len(colors)],
+                    tag=TAG_BOMB_PROTECTED_NODE,
                 )
                 nodes.append({"col": col, "row": row, "x": x, "y": y, "bullet": bullet})
         return nodes

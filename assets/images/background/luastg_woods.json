@@ -1,0 +1,337 @@
+{
+  "name": "luastg_woods",
+  "description": "Editable draft generated from LuaSTG background 'woods'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "woods",
+    "lua": "woods.lua"
+  },
+  "textures": {
+    "11": {
+      "path": "woods/11.png",
+      "description": "Imported from woods/11.png"
+    },
+    "3_1": {
+      "path": "woods/3-1.png",
+      "description": "Imported from woods/3-1.png"
+    },
+    "bamboo": {
+      "path": "woods/bamboo.png",
+      "description": "Imported from woods/bamboo.png"
+    },
+    "forest1": {
+      "path": "woods/forest1.png",
+      "description": "Imported from woods/forest1.png"
+    },
+    "ground": {
+      "path": "woods/ground.png",
+      "description": "Imported from woods/ground.png"
+    },
+    "stage06c": {
+      "path": "woods/stage06c.png",
+      "description": "Imported from woods/stage06c.png"
+    },
+    "tree1": {
+      "path": "woods/tree1.png",
+      "description": "Imported from woods/tree1.png"
+    },
+    "tree2": {
+      "path": "woods/tree2.png",
+      "description": "Imported from woods/tree2.png"
+    },
+    "tree3": {
+      "path": "woods/tree3.png",
+      "description": "Imported from woods/tree3.png"
+    },
+    "woods_leaf": {
+      "path": "woods/woods_leaf.png",
+      "description": "Imported from woods/woods_leaf.png"
+    },
+    "ݵ": {
+      "path": "woods/�ݵ�.png",
+      "description": "Imported from woods/�ݵ�.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      1.5,
+      0.4,
+      -5.0
+    ],
+    "at": [
+      1.5,
+      -1.4,
+      0.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.7,
+    "z_near": 1.0,
+    "z_far": 24.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 8.3,
+    "end": 20.0
+  },
+  "scroll": {
+    "base_speed": 0.003,
+    "direction": [
+      0,
+      1
+    ]
+  },
+  "layers": [
+    {
+      "name": "11",
+      "texture": "11",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "3_1",
+      "texture": "3_1",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "bamboo",
+      "texture": "bamboo",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "forest1",
+      "texture": "forest1",
+      "z_order": 3,
+      "z_depth": -0.15000000000000002,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "ground",
+      "texture": "ground",
+      "z_order": 4,
+      "z_depth": -0.2,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "stage06c",
+      "texture": "stage06c",
+      "z_order": 5,
+      "z_depth": -0.25,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "tree1",
+      "texture": "tree1",
+      "z_order": 6,
+      "z_depth": -0.30000000000000004,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "tree2",
+      "texture": "tree2",
+      "z_order": 7,
+      "z_depth": -0.35000000000000003,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "tree3",
+      "texture": "tree3",
+      "z_order": 8,
+      "z_depth": -0.4,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "woods_leaf",
+      "texture": "woods_leaf",
+      "z_order": 9,
+      "z_depth": -0.45,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "ݵ",
+      "texture": "ݵ",
+      "z_order": 10,
+      "z_depth": -0.5,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

@@ -82,6 +82,7 @@ class PlayerShotSystem:
         self.spread_range: Optional[float] = None   # 散射角度范围
         self.target_angle: Optional[float] = None   # 瞄准角度
         self.damage_bonus: float = 1.0              # 伤害加成
+        self.projectile_multiplier: int = 1
         
         # 音效回调
         self.on_shot_sound: Optional[Callable[[str], None]] = None
@@ -99,7 +100,8 @@ class PlayerShotSystem:
     def update(self, dt: float, player_x: float, player_y: float, 
                is_shooting: bool, is_focused: bool, power: float,
                spread_range: float = None, target_angle: float = None,
-               damage_bonus: float = 1.0):
+               damage_bonus: float = 1.0,
+               projectile_multiplier: int = 1):
         """
         更新射击系统
         :param dt: 时间步长
@@ -116,6 +118,7 @@ class PlayerShotSystem:
         self.spread_range = spread_range
         self.target_angle = target_angle
         self.damage_bonus = damage_bonus
+        self.projectile_multiplier = max(1, int(projectile_multiplier))
         
         # 更新Option位置（低速模式收拢）
         self._update_option_positions(player_x, player_y, is_focused, dt)
@@ -208,23 +211,31 @@ class PlayerShotSystem:
         """生成单颗子弹"""
         angle = angle_override if angle_override is not None else pattern.angle
         angle_offset = angle_offset_override if angle_offset_override is not None else pattern.angle_offset
-        angle_rad = math.radians(angle + angle_offset)
-        
         # 应用伤害加成
         damage = pattern.damage * self.damage_bonus
-        
-        self.bullet_pool.spawn(
-            x=x,
-            y=y,
-            angle=angle_rad,
-            speed=pattern.speed,
-            sprite_id=pattern.bullet_sprite,
-            damage=damage,
-            bullet_type=pattern.bullet_type,
-            homing_strength=pattern.homing_strength,
-            scale=pattern.scale,
-            color=pattern.color
-        )
+
+        count = self.projectile_multiplier
+        if count <= 1:
+            offsets = [0.0]
+        elif count == 2:
+            offsets = [-3.0, 3.0]
+        else:
+            step = 8.0 / (count - 1)
+            offsets = [-4.0 + step * i for i in range(count)]
+
+        for offset in offsets:
+            self.bullet_pool.spawn(
+                x=x,
+                y=y,
+                angle=math.radians(angle + angle_offset + offset),
+                speed=pattern.speed,
+                sprite_id=pattern.bullet_sprite,
+                damage=damage,
+                bullet_type=pattern.bullet_type,
+                homing_strength=pattern.homing_strength,
+                scale=pattern.scale,
+                color=pattern.color
+            )
     
     def get_option_render_data(self) -> List[tuple]:
         """

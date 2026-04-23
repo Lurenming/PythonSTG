@@ -3,6 +3,8 @@ Stage 2 - 燃料与汗水的疾走 ～ 延伸至地平线外的昌平线
 Terminal Station ~ The Subway to the Edge of the World.
 """
 
+import os
+
 from src.game.stage.stage_base import StageScript, BossDef
 from src.game.stage.boss_base import spellcard
 
@@ -25,7 +27,7 @@ class Stage2(StageScript):
     subtitle = "Terminal Station ~ The Subway to the Edge of the World."
     bgm = "02.wav"
     boss_bgm = "03.wav"
-    background = "stage2_bg"
+    background = "bamboo"
     DEBUG_BOOKMARK = False
 
     # ===== Boss 定义 =====
@@ -56,6 +58,13 @@ class Stage2(StageScript):
         await self.run_wave(Stage2Wave3)
 
         await self.wait(20)
+
+        # Boss 出现：从路途道中切到更强烈的红色中国风舞台。
+        await self.set_background("luastg_gzz_stage04bg")
+        if self.ctx and self.ctx.background_renderer:
+            self.ctx.background_renderer.load_texture(
+                os.path.join("game_content", "stages", "stage2", "back", "cpline.png")
+            )
 
         # Boss 战前剧情
         await self.play_dialogue([

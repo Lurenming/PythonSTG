@@ -47,8 +47,8 @@ _ROOMMATES = [
     dict(interval=25, btype="mildew",   color="darkred", mode="random_burst", count=4,  speed=6.0),
     # 9号 - 深蓝子弹随机扫射（"凌晨3点出去又回来"）
     dict(interval=22, btype="bullet",   color="darkblue", mode="random_burst", count=3, speed=13.0),
-    # 10号 - 粉色米弹旋臂（"天亮就睡着了"）
-    dict(interval=90, btype="grain_b",  color="pink",    mode="circle",       count=16, speed=4.5),
+    # 10号 - 白色米弹旋臂（"天亮就睡着了"）
+    dict(interval=90, btype="grain_a",  color="white",   mode="circle",       count=16, speed=4.5),
     # 11号 - 全随机（"神秘的大哥，从没见过正脸"）
     dict(interval=40, btype="star_m",   color="purple",  mode="chaos",        count=5,  speed=12.0),
 ]

@@ -24,13 +24,13 @@ class Stage3(StageScript):
     subtitle = "Geological Report of Senior Celestial and Junior Fairy"
     bgm = "04.wav"
     boss_bgm = "05.wav"
-    background = "lake"
+    background = "luastg_stage3bg"
     DEBUG_BOOKMARK = False
 
     boss = BossDef(
         id="star_boss",
         name="Star Sapphire",
-        texture="boss_3fairy",
+        texture="star",
         phases=[
             spellcard(StarSpell1, "门符「23:00 准时关闭的东北门」",       hp=2000, time=60),
             spellcard(StarSpell2, "幻符「十二人间里的癔症狂想曲」",   hp=2400, time=65),
@@ -54,6 +54,9 @@ class Stage3(StageScript):
         await self.run_wave(Stage3Wave3)
 
         await self.wait(80)
+
+        # Boss 出现：切到星星们的背景，和道中地质/地毯感背景拉开。
+        await self.set_background("luastg_temple2")
 
         # Boss 战前对话
         await self.play_dialogue([
@@ -100,4 +103,3 @@ class Stage3(StageScript):
             {"character": "Kaenbyou_Rin",    "name": "猫",  "position": "left",  "text": "看来还是没治好。",         "portrait": "Sad"},
             {"character": "Toutetu_Yuma",    "name": "羊",  "position": "left",  "text": "算了，别管了。趁她们还没想起来明天有早八，赶紧去爬一会塔。这次我要证明故障机器人不是区。", "portrait": "VeryHappy"},
         ])
-

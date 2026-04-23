@@ -16,6 +16,7 @@ from src.core.audio_backend import init_audio_backend
 from src.render import Renderer
 from src.game.bullet import BulletPool
 from src.game.bullet.optimized_pool import OptimizedBulletPool
+from src.game.bomb import trigger_player_bomb
 from src.game.player import Player, check_collisions, load_player
 from src.game.stage import StageManager
 from src.game.boss import BossManager
@@ -355,7 +356,7 @@ def initialize_window_and_context():
     screen_size = (config.window_width, config.window_height)
     game_viewport = config.game_viewport
     
-    window = GameWindow(screen_size[0], screen_size[1], "弹幕游戏")
+    window = GameWindow(screen_size[0], screen_size[1], "东方做题狙特别版")
     
     ctx = moderngl.create_context()
     
@@ -547,6 +548,16 @@ def main():
                       layout_override=layout_override)
             ui_renderer = UIRenderer(ctx, screen_width=screen_size[0], screen_height=screen_size[1])
 
+            # ── QQ 群弹幕 emoji 子系统 ────────────────────────────────────────
+            from src.game.emoji_danmaku import EmojiDanmakuSystem
+            emoji_sys = EmojiDanmakuSystem(
+                ctx=ctx,
+                screen_size=screen_size,
+                game_viewport=game_viewport,
+                panel_origin=(panel_origin_x, panel_origin_y),
+            )
+            emoji_sys.start()
+
             _show_loading("Initializing UI...", 0.68)
             dialog_gl_renderer = DialogGLRenderer(ctx, screen_size[0], screen_size[1], game_viewport)
             pause_menu_renderer = PauseMenuRenderer(ctx, screen_size[0], screen_size[1])
@@ -569,6 +580,9 @@ def main():
                 print(f"背景系统初始化失败（可选功能）: {e}")
                 import traceback
                 traceback.print_exc()
+
+            # 加载全窗口UI背景图（显示在游戏内容下层、UI面板区域）
+            renderer.set_window_bg_texture('assets/ui/ui_bg.png')
 
             _show_loading("Loading audio...", 0.88)
             game_audio = GameAudioBank()
@@ -596,13 +610,12 @@ def main():
 
             # 加载高分记录
             item_pool.stats.load_hiscore()
+            player.bombs = item_pool.stats.bombs
             
-            # 连接 bomb 回调：通知 Boss 积分系统
+            # 连接 bomb 回调：统一清弹、转点、收点和 Boss 积分事件
             def _on_player_bomb():
-                if stage_manager.current_stage and stage_manager.current_stage._current_boss:
-                    boss = stage_manager.current_stage._current_boss
-                    if boss._active:
-                        boss.on_player_bomb()
+                item_pool.stats.bombs = max(0, item_pool.stats.bombs - 1)
+                trigger_player_bomb(player, bullet_pool, item_pool, stage_manager)
             player.on_bomb_callback = _on_player_bomb
             
             clock = FrameClock()
@@ -730,6 +743,7 @@ def main():
                                     player.pos = old_pos
                                     player.lives = old_lives
                                     player.power = old_power
+                                    player.bombs = item_pool.stats.bombs
                                     player.invincible_timer = max(old_invinc, 0.5)  # 给个短暂无敌防判定死
                                     player.on_bomb_callback = _on_player_bomb
                                     
@@ -795,6 +809,7 @@ def main():
                         bullet_pool.update(dt)
                         laser_pool.update()
                         item_pool.update(player.pos[0], player.pos[1], dt)
+                        emoji_sys.update(dt, player)
 
                     stage_manager.update(dt, bullet_pool, player)
                 if PROFILE_MODE:
@@ -818,6 +833,7 @@ def main():
                 player.score = item_pool.stats.score
                 player.power = item_pool.stats.get_power_float()
                 player.lives = item_pool.stats.lives
+                player.bombs = item_pool.stats.bombs
 
                 collision_mgr = get_collision_manager()
 
@@ -836,6 +852,11 @@ def main():
                                 _ab = stage_manager.current_stage._current_boss if stage_manager.current_stage else None
                                 if _ab and _ab._active:
                                     _ab.on_player_miss()
+
+                        # emoji 弹判定
+                        if emoji_sys.check_player_collision(player):
+                            if player.take_damage():
+                                print(f"Player hit by emoji bullet! Lives left: {player.lives}")
 
                     if player.invincible_timer <= 0:
                         laser_result = collision_mgr.check_player_vs_lasers(
@@ -866,7 +887,8 @@ def main():
                         for hit in hits:
                             if 0 <= hit.target_idx < len(active_targets):
                                 target = active_targets[hit.target_idx]
-                                target.damage(int(hit.damage))
+                                damage_mul = player.get_bomb_damage_multiplier() if hasattr(player, 'get_bomb_damage_multiplier') else 1.0
+                                target.damage(int(hit.damage * damage_mul))
                                 # +10 per bullet hit (matches LuaSTG)
                                 item_pool.stats.score += 10
                                 if player.script and hasattr(player.script, 'on_bullet_hit_enemy'):
@@ -900,7 +922,8 @@ def main():
                                         continue
                                     hit_r = getattr(target, 'hitbox_radius', getattr(target, 'hit_radius', 0.05))
                                     if abs(tx - lx) < beam_hw + hit_r and ty > ly:
-                                        target.damage(int(laser_dmg))
+                                        damage_mul = player.get_bomb_damage_multiplier() if hasattr(player, 'get_bomb_damage_multiplier') else 1.0
+                                        target.damage(int(laser_dmg * damage_mul))
                                         item_pool.stats.score += 10
 
                     # === Graze detection ===
@@ -939,8 +962,13 @@ def main():
                 )
                 
                 ctx.viewport = (0, 0, screen_size[0], screen_size[1])
+                # 飘落 emoji 叠加在游戏画面上（在 HUD 之前，使其被 UI 覆盖）
+                emoji_sys.render_game()
+
                 ui_start = time.perf_counter() if PROFILE_MODE else 0.0
                 ui_renderer.render_hud(hud)
+                # 热度条 + 抽奖动画叠加在 HUD 上
+                emoji_sys.render_ui(ui_renderer)
                 if PROFILE_MODE:
                     profile_acc["render_ui"] += time.perf_counter() - ui_start
 
@@ -972,7 +1000,8 @@ def main():
             
             # 保存高分记录
             item_pool.stats.save_hiscore()
-            
+
+            emoji_sys.stop()
             audio_manager.cleanup()
             renderer.cleanup()
             item_renderer.cleanup()

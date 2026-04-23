@@ -1,0 +1,259 @@
+{
+  "name": "luastg_stage3bg",
+  "description": "Editable draft generated from LuaSTG background 'stage3bg'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "stage3bg",
+    "lua": "stage3bg.lua"
+  },
+  "textures": {
+    "stage03a": {
+      "path": "stage3bg/stage03a.png",
+      "description": "Imported from stage3bg/stage03a.png"
+    },
+    "stage03b": {
+      "path": "stage3bg/stage03b.png",
+      "description": "Imported from stage3bg/stage03b.png"
+    },
+    "stage03c": {
+      "path": "stage3bg/stage03c.png",
+      "description": "Imported from stage3bg/stage03c.png"
+    },
+    "stage03d": {
+      "path": "stage3bg/stage03d.png",
+      "description": "Imported from stage3bg/stage03d.png"
+    },
+    "stage03e": {
+      "path": "stage3bg/stage03e.png",
+      "description": "Imported from stage3bg/stage03e.png"
+    },
+    "stage03f": {
+      "path": "stage3bg/stage03f.png",
+      "description": "Imported from stage3bg/stage03f.png"
+    },
+    "stage03light": {
+      "path": "stage3bg/stage03light.png",
+      "description": "Imported from stage3bg/stage03light.png"
+    },
+    "stage3light": {
+      "path": "stage3bg/stage3light.png",
+      "description": "Imported from stage3bg/stage3light.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      9.3,
+      -6.0
+    ],
+    "at": [
+      0.0,
+      0.0,
+      -1.1
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.6,
+    "z_near": 1.0,
+    "z_far": 100.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 7.4,
+    "end": 10.5
+  },
+  "scroll": {
+    "base_speed": 0.003,
+    "direction": [
+      0,
+      1
+    ]
+  },
+  "layers": [
+    {
+      "name": "stage03a",
+      "texture": "stage03a",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "stage03b",
+      "texture": "stage03b",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "stage03c",
+      "texture": "stage03c",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "stage03d",
+      "texture": "stage03d",
+      "z_order": 3,
+      "z_depth": -0.15000000000000002,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "stage03e",
+      "texture": "stage03e",
+      "z_order": 4,
+      "z_depth": -0.2,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "stage03f",
+      "texture": "stage03f",
+      "z_order": 5,
+      "z_depth": -0.25,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "stage03light",
+      "texture": "stage03light",
+      "z_order": 6,
+      "z_depth": -0.30000000000000004,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "stage3light",
+      "texture": "stage3light",
+      "z_order": 7,
+      "z_depth": -0.35000000000000003,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

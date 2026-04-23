@@ -299,11 +299,19 @@ class SpellCard(ABC):
     
     def clear_bullets(self, to_items: bool = False):
         """清除此符卡创建的所有子弹"""
-        for bullet in self._bullets:
-            if to_items:
-                self.ctx.bullet_to_item(bullet)
-            else:
-                self.ctx.remove_bullet(bullet)
+        if not self._bullets:
+            return
+
+        if to_items and hasattr(self.ctx, "bullets_to_items"):
+            self.ctx.bullets_to_items(self._bullets)
+        elif not to_items and hasattr(self.ctx, "remove_bullets"):
+            self.ctx.remove_bullets(self._bullets)
+        else:
+            for bullet in self._bullets:
+                if to_items:
+                    self.ctx.bullet_to_item(bullet)
+                else:
+                    self.ctx.remove_bullet(bullet)
         self._bullets.clear()
     
     # ==================== 音频 API ====================

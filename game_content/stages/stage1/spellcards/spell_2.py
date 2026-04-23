@@ -9,6 +9,7 @@ import math
 import random
 
 from src.game.stage.spellcard import SpellCard
+from src.game.bullet.tags import TAG_BOMB_PROTECTED_MIRROR
 
 
 class SunnySpell1(SpellCard):
@@ -79,6 +80,7 @@ class SunnySpell1(SpellCard):
                 x=px, y=py, angle=0.0, speed=0.0,
                 bullet_type="ball_s", color="darkblue",
                 friction=0.0,
+                tag=TAG_BOMB_PROTECTED_MIRROR,
             )
             if idx >= 0:
                 idxs.append(idx)
@@ -91,13 +93,15 @@ class SunnySpell1(SpellCard):
             idx = self.fire(
                 x=px, y=py, angle=0.0, speed=0.0,
                 bullet_type="ball_s", color="cyan",
+                tag=TAG_BOMB_PROTECTED_MIRROR,
             )
             if idx >= 0:
                 idxs.append(idx)
 
         # 中心：白色中弹 + 沿法线方向的两颗"指示灯"
         idx_c = self.fire(x=x, y=y, angle=0.0, speed=0.0,
-                          bullet_type="ball_m", color="white")
+                          bullet_type="ball_m", color="white",
+                          tag=TAG_BOMB_PROTECTED_MIRROR)
         if idx_c >= 0:
             idxs.append(idx_c)
 
@@ -106,7 +110,8 @@ class SunnySpell1(SpellCard):
             px = x + sign * self.disc_outer_radius * 0.72 * math.cos(nr)
             py = y + sign * self.disc_outer_radius * 0.72 * math.sin(nr)
             idx = self.fire(x=px, y=py, angle=0.0, speed=0.0,
-                            bullet_type="ball_s", color="yellow")
+                            bullet_type="ball_s", color="yellow",
+                            tag=TAG_BOMB_PROTECTED_MIRROR)
             if idx >= 0:
                 idxs.append(idx)
 

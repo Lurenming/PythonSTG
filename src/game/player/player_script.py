@@ -69,25 +69,41 @@ class PlayerScript:
         if y is None:
             y = self.player.pos[1]
 
-        angle_rad = math.radians(angle)
         bullet_type = 1 if homing else 0
 
         anim_id = -1
         if bullet_anim:
             anim_id = self.bullet_pool.anim_registry.get_id(bullet_anim)
 
-        return self.bullet_pool.spawn(
-            x=x, y=y,
-            angle=angle_rad,
-            speed=speed,
-            sprite_id=sprite_id,
-            damage=damage,
-            bullet_type=bullet_type,
-            homing_strength=homing_strength if homing else 0.0,
-            penetrate=penetrate,
-            scale=scale,
-            anim_id=anim_id,
-        )
+        multiplier = 1
+        if hasattr(self.player, 'get_bomb_shot_multiplier'):
+            multiplier = self.player.get_bomb_shot_multiplier()
+
+        if multiplier <= 1:
+            offsets = [0.0]
+        elif multiplier == 2:
+            offsets = [-3.0, 3.0]
+        else:
+            step = 8.0 / (multiplier - 1)
+            offsets = [-4.0 + step * i for i in range(multiplier)]
+
+        first_idx = -1
+        for offset in offsets:
+            idx = self.bullet_pool.spawn(
+                x=x, y=y,
+                angle=math.radians(angle + offset),
+                speed=speed,
+                sprite_id=sprite_id,
+                damage=damage,
+                bullet_type=bullet_type,
+                homing_strength=homing_strength if homing else 0.0,
+                penetrate=penetrate,
+                scale=scale,
+                anim_id=anim_id,
+            )
+            if first_idx < 0:
+                first_idx = idx
+        return first_idx
 
     def fire_from_option(self, option_idx: int, bullet_anim: str = "",
                          angle: float = 90.0, speed: float = 0.05,

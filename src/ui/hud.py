@@ -218,23 +218,58 @@ class HUD:
     def get_render_elements(self) -> list:
         """
         获取需要渲染的UI元素列表
-        
+
         Returns:
             list: [{'type': 'text'/'bar'/'icon', 'position': (x, y), ...}, ...]
         """
         elements = []
 
-        # 面板背景
-        elements.append({
-            'type': 'rect',
-            'position': (self.panel_origin[0], self.panel_origin[1]),
-            'width': self.panel_size[0],
-            'height': self.panel_size[1],
-            'color': self.bg_color,
-            'alpha': self.bg_alpha
-        })
-        
-        # 分数显示
+        # ── 色板（与樱花背景协调）──────────────────────────────────────────
+        COL_LABEL     = (235, 225, 230)   # 柔和米白，用于 label
+        COL_VALUE     = (255, 250, 240)   # 近白，数值
+        COL_PLAYER    = (255, 160, 180)   # 玫粉，Player label
+        COL_PLAYER_IC = (255, 100, 130)   # 稍深玫粉，Player 图标
+        COL_BOMB      = (180, 230, 195)   # 柔和薄荷绿，Bomb label
+        COL_BOMB_IC   = (120, 210, 155)   # 稍深绿，Bomb 图标
+        COL_POWER     = (180, 200, 255)   # 柔和淡蓝，Power label
+        COL_POWER_VAL = (220, 230, 255)   # Power 数值
+        COL_SUBTLE    = (210, 200, 210)   # Graze/Point label
+        COL_POINT_VAL = (255, 240, 200)   # Point 数值（淡金）
+        COL_DIVIDER   = (255, 255, 255)   # 细分割线
+        COL_CARD_BG   = (18, 14, 24)      # 卡片背景（深紫黑）
+
+        # ── Section backdrops（半透明卡片，让白字在花背景上可读）──────────
+        card_alpha = 0.42
+        for key in ('section_score_bg', 'section_stats_bg',
+                    'section_bonus_bg', 'section_heat_bg'):
+            if key not in self.layout:
+                continue
+            bx, by, bw, bh = self.layout[key]
+            elements.append({
+                'type': 'rect',
+                'position': (self.panel_origin[0] + bx,
+                             self.panel_origin[1] + by),
+                'width': bw, 'height': bh,
+                'color': COL_CARD_BG,
+                'alpha': card_alpha,
+            })
+
+        # ── 分割线（卡片间细白线，+低透明）────────────────────────────────
+        for key in ('divider_score_stats', 'divider_stats_bonus',
+                    'divider_bonus_heat'):
+            if key not in self.layout:
+                continue
+            dx, dy, dw, dh = self.layout[key]
+            elements.append({
+                'type': 'rect',
+                'position': (self.panel_origin[0] + dx,
+                             self.panel_origin[1] + dy),
+                'width': dw, 'height': dh,
+                'color': COL_DIVIDER,
+                'alpha': 0.18,
+            })
+
+        # 分数显示（数值右对齐）
         elements.append({
             'type': 'text',
             'text': 'HiScore',
@@ -242,7 +277,7 @@ class HUD:
                          self.panel_origin[1] + self.layout['hiscore_label'][1]),
             'font': 'score',
             'scale': self.small_font_scale,
-            'color': (255, 255, 255)
+            'color': COL_LABEL
         })
         elements.append({
             'type': 'text',
@@ -251,7 +286,8 @@ class HUD:
                          self.panel_origin[1] + self.layout['hiscore_value'][1]),
             'font': 'score',
             'scale': self.font_scale,
-            'color': (255, 255, 255)
+            'color': COL_VALUE,
+            'align': 'right'
         })
         elements.append({
             'type': 'text',
@@ -260,7 +296,7 @@ class HUD:
                          self.panel_origin[1] + self.layout['score_label'][1]),
             'font': 'score',
             'scale': self.small_font_scale,
-            'color': (255, 255, 255)
+            'color': COL_LABEL
         })
         elements.append({
             'type': 'text',
@@ -269,9 +305,10 @@ class HUD:
                          self.panel_origin[1] + self.layout['score_value'][1]),
             'font': 'score',
             'scale': self.font_scale,
-            'color': (255, 255, 255)
+            'color': COL_VALUE,
+            'align': 'right'
         })
-        
+
         # 生命数
         elements.append({
             'type': 'text',
@@ -280,10 +317,10 @@ class HUD:
                          self.panel_origin[1] + self.layout['player_label'][1]),
             'font': 'score',
             'scale': self.small_font_scale,
-            'color': (255, 128, 128)
+            'color': COL_PLAYER
         })
-        # 生命图标用星号表示，空心用小写字母o表示
-        life_text = '*' * self.state.lives + 'o' * max(0, self.state.max_lives - self.state.lives)
+        # 生命图标：填充用 `*`，空槽用 `.`（视觉更干净）
+        life_text = '*' * self.state.lives + '.' * max(0, self.state.max_lives - self.state.lives)
         elements.append({
             'type': 'text',
             'text': life_text,
@@ -291,9 +328,9 @@ class HUD:
                          self.panel_origin[1] + self.layout['player_icons'][1]),
             'font': 'score',
             'scale': self.font_scale,
-            'color': (255, 64, 64)
+            'color': COL_PLAYER_IC
         })
-        
+
         # 炸弹数
         elements.append({
             'type': 'text',
@@ -302,9 +339,9 @@ class HUD:
                          self.panel_origin[1] + self.layout['bomb_label'][1]),
             'font': 'score',
             'scale': self.small_font_scale,
-            'color': (128, 255, 128)
+            'color': COL_BOMB
         })
-        bomb_text = '*' * self.state.bombs + 'o' * max(0, self.state.max_bombs - self.state.bombs)
+        bomb_text = '*' * self.state.bombs + '.' * max(0, self.state.max_bombs - self.state.bombs)
         elements.append({
             'type': 'text',
             'text': bomb_text,
@@ -312,9 +349,9 @@ class HUD:
                          self.panel_origin[1] + self.layout['bomb_icons'][1]),
             'font': 'score',
             'scale': self.font_scale,
-            'color': (64, 255, 64)
+            'color': COL_BOMB_IC
         })
-        
+
         # Power
         elements.append({
             'type': 'text',
@@ -323,7 +360,7 @@ class HUD:
                          self.panel_origin[1] + self.layout['power_label'][1]),
             'font': 'score',
             'scale': self.small_font_scale,
-            'color': (128, 128, 255)
+            'color': COL_POWER
         })
         elements.append({
             'type': 'text',
@@ -332,9 +369,10 @@ class HUD:
                          self.panel_origin[1] + self.layout['power_value'][1]),
             'font': 'score',
             'scale': self.small_font_scale,
-            'color': (128, 128, 255)
+            'color': COL_POWER_VAL,
+            'align': 'right'
         })
-        # Power条
+        # Power条（柔和的淡蓝渐变感，用较低不透明的深底 + 明亮填充）
         elements.append({
             'type': 'bar',
             'position': (self.panel_origin[0] + self.layout['power_bar'][0],
@@ -342,11 +380,12 @@ class HUD:
             'width': self.layout['power_bar_width'],
             'height': self.layout['power_bar_height'],
             'value': self.state.power / self.state.max_power,
-            'color_bg': (32, 32, 64),
-            'color_fill': (64, 64, 255)
+            'color_bg': (36, 28, 52),
+            'color_fill': (140, 170, 255),
+            'alpha': 0.92,
         })
-        
-        # Graze
+
+        # Graze（右对齐数值）
         elements.append({
             'type': 'text',
             'text': 'Graze',
@@ -354,7 +393,7 @@ class HUD:
                          self.panel_origin[1] + self.layout['graze_label'][1]),
             'font': 'score',
             'scale': self.small_font_scale,
-            'color': (200, 200, 200)
+            'color': COL_SUBTLE
         })
         elements.append({
             'type': 'text',
@@ -363,10 +402,11 @@ class HUD:
                          self.panel_origin[1] + self.layout['graze_value'][1]),
             'font': 'score',
             'scale': self.small_font_scale,
-            'color': (255, 255, 255)
+            'color': COL_VALUE,
+            'align': 'right'
         })
-        
-        # Point
+
+        # Point（右对齐数值）
         elements.append({
             'type': 'text',
             'text': 'Point',
@@ -374,7 +414,7 @@ class HUD:
                          self.panel_origin[1] + self.layout['point_label'][1]),
             'font': 'score',
             'scale': self.small_font_scale,
-            'color': (200, 200, 200)
+            'color': COL_SUBTLE
         })
         elements.append({
             'type': 'text',
@@ -383,7 +423,8 @@ class HUD:
                          self.panel_origin[1] + self.layout['point_value'][1]),
             'font': 'score',
             'scale': self.small_font_scale,
-            'color': (255, 255, 200)
+            'color': COL_POINT_VAL,
+            'align': 'right'
         })
         
         # 游戏区域边框（弹幕渲染部分）- 向外扩张

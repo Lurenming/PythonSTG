@@ -119,6 +119,13 @@ class Renderer:
         self.background_renderer = None
         # 优化版敌弹渲染器（仅当 bullet_pool 支持 prepare_render_data_sorted 时启用）
         self.optimized_bullet_renderer = OptimizedBulletRenderer(ctx, textures)
+
+        # 全窗口背景图（UI背景，叠在游戏内容下层）
+        self._window_bg_texture = None
+        self._window_bg_program = None
+        self._window_bg_vbo = None
+        self._window_bg_vao = None
+        self._init_window_bg_shader()
     
     def _build_sprite_size_cache(self):
         """构建精灵大小分类缓存"""
@@ -370,6 +377,140 @@ class Renderer:
         self.circle_vbo = self.ctx.buffer(reserve=(self.circle_segments + 1) * 2 * 4)
         self.circle_vao = self.ctx.vertex_array(self.circle_program, [(self.circle_vbo, '2f', 'in_vert')])
 
+    def _init_window_bg_shader(self):
+        """初始化全窗口背景图渲染着色器（全屏纹理四边形，NDC坐标）"""
+        vertex_shader = """
+        #version 330
+        in vec2 in_pos;
+        in vec2 in_uv;
+        out vec2 v_uv;
+        void main() {
+            gl_Position = vec4(in_pos, 0.0, 1.0);
+            v_uv = in_uv;
+        }
+        """
+        fragment_shader = """
+        #version 330
+        uniform sampler2D u_tex;
+        uniform float u_alpha;
+        in vec2 v_uv;
+        out vec4 f_color;
+        void main() {
+            vec4 c = texture(u_tex, v_uv);
+            f_color = vec4(c.rgb, c.a * u_alpha);
+        }
+        """
+        self._window_bg_program = self.ctx.program(
+            vertex_shader=vertex_shader,
+            fragment_shader=fragment_shader
+        )
+        self._window_bg_program['u_tex'].value = 0
+        self._window_bg_program['u_alpha'].value = 1.0
+
+        # 全屏四边形：NDC (-1,1) 到 (1,-1)，UV (0,0) 到 (1,1)
+        # 顶点顺序保证屏幕左上=图片左上
+        quad = np.array([
+            # pos_x  pos_y   uv_x  uv_y
+            -1.0,  1.0,   0.0,  0.0,   # 左上
+            -1.0, -1.0,   0.0,  1.0,   # 左下
+             1.0,  1.0,   1.0,  0.0,   # 右上
+             1.0,  1.0,   1.0,  0.0,   # 右上
+            -1.0, -1.0,   0.0,  1.0,   # 左下
+             1.0, -1.0,   1.0,  1.0,   # 右下
+        ], dtype='f4')
+        self._window_bg_vbo = self.ctx.buffer(quad.tobytes())
+        self._window_bg_vao = self.ctx.vertex_array(
+            self._window_bg_program,
+            [(self._window_bg_vbo, '2f 2f', 'in_pos', 'in_uv')]
+        )
+
+    def set_window_bg_texture(self, path: str, alpha: float = 1.0) -> bool:
+        """
+        加载并设置全窗口背景图（叠在游戏内容下层，UI面板上层）
+
+        Args:
+            path: 图片文件路径，如 'assets/ui/ui_bg.png'
+            alpha: 整体透明度 0.0-1.0
+
+        Returns:
+            bool: 是否加载成功
+        """
+        try:
+            from PIL import Image
+            img = Image.open(path).convert("RGBA")
+            # 不翻转：PIL行0（顶部）→ OpenGL行0（底部）恰好与 UV v=0→底部对应
+            # 我们在 quad 中把 NDC y=+1（顶）对应 uv_v=0，y=-1（底）对应 uv_v=1，
+            # 即不翻转图片就能让图片顶部显示在屏幕顶部
+            w, h = img.size
+            data = img.tobytes("raw", "RGBA")
+            tex = self.ctx.texture((w, h), 4, data)
+            tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
+            self._window_bg_texture = tex
+            self._window_bg_program['u_alpha'].value = alpha
+            print(f"已加载全窗口背景图: {path} ({w}x{h})")
+            return True
+        except Exception as e:
+            print(f"加载全窗口背景图失败 {path}: {e}")
+            return False
+
+    def _render_window_bg(self):
+        """渲染全窗口背景图（仅在有纹理时调用）"""
+        if self._window_bg_texture is None:
+            return
+        self.ctx.enable(moderngl.BLEND)
+        self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        self._window_bg_texture.use(0)
+        self._window_bg_vao.render(moderngl.TRIANGLES)
+
+    def _repaint_window_bg_outside_viewport(self, viewport_rect, win_size):
+        """
+        在游戏视口以外的 4 个边框条（上/下/左/右）重新绘制全窗口背景图。
+
+        Why: 背景渲染器内部的 `ctx.screen.use()` / 后处理会把 viewport 重置为
+        整窗口并输出到整个屏幕，顺带把 HUD / 视口边框区域原先画好的 ui_bg 覆盖。
+        因此在游戏层全部渲染完之后，用 4 次 scissor 裁剪把 ui_bg 重贴到
+        游戏视口以外的区域（游戏区域内部仍然是背景渲染器画的内容）。
+
+        Args:
+            viewport_rect: 游戏视口 (x, y_from_bottom, w, h)
+            win_size: (win_w, win_h)
+        """
+        if self._window_bg_texture is None:
+            return
+        vx, vy, vw, vh = viewport_rect
+        win_w, win_h = win_size
+        # 目前要裁的 4 条 scissor 矩形（OpenGL 约定：y 从下向上）
+        strips = []
+        # 下边条
+        if vy > 0:
+            strips.append((0, 0, win_w, vy))
+        # 上边条
+        top_y = vy + vh
+        if top_y < win_h:
+            strips.append((0, top_y, win_w, win_h - top_y))
+        # 左边条
+        if vx > 0:
+            strips.append((0, vy, vx, vh))
+        # 右边条
+        right_x = vx + vw
+        if right_x < win_w:
+            strips.append((right_x, vy, win_w - right_x, vh))
+
+        if not strips:
+            return
+
+        # 确保渲染到整个窗口（viewport 与 strip 的 scissor 协同裁剪）
+        prev_viewport = self.ctx.viewport
+        self.ctx.viewport = (0, 0, win_w, win_h)
+        self.ctx.enable(moderngl.BLEND)
+        self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        self._window_bg_texture.use(0)
+        for rect in strips:
+            self.ctx.scissor = rect
+            self._window_bg_vao.render(moderngl.TRIANGLES)
+        self.ctx.scissor = None
+        self.ctx.viewport = prev_viewport
+
     def _init_viewport_border_shader(self):
         """初始化游戏视口边框渲染着色器"""
         self.border_program = self.ctx.program(
@@ -468,17 +609,28 @@ class Renderer:
             # 先清除整个窗口背景（覆盖边框区域）
             self.ctx.viewport = (0, 0, win_w, win_h)
             self.ctx.clear(0.05, 0.05, 0.08)
-            # 再切换到游戏视口并清除游戏区域
+            # 渲染全窗口背景图（叠在游戏内容下层，UI面板背景）
+            self._render_window_bg()
+            # 切换到游戏视口，用 scissor 限制 clear 只影响游戏区域
+            # （OpenGL 的 clear 不受 viewport 约束，必须用 scissor 限制范围）
             self.ctx.viewport = viewport_rect
-
-        # 清屏
-        self.ctx.clear(0.1, 0.1, 0.1)
+            self.ctx.scissor = viewport_rect
+            self.ctx.clear(0.1, 0.1, 0.1)
+            self.ctx.scissor = None  # 关闭 scissor，恢复全屏渲染
+        else:
+            # 无视口分割时正常清屏
+            self.ctx.clear(0.1, 0.1, 0.1)
 
         # ===== 层级 0: 背景 =====
         seg_start = time.perf_counter() if do_profile else 0.0
         if self.background_renderer:
             self.background_renderer.update(dt)
             self.background_renderer.render()
+            # 背景渲染器内部会 ctx.screen.use() 把 viewport 重置为整个窗口，
+            # 这里把 viewport 重新设回游戏视口，保证后续敌人/子弹/激光/玩家
+            # 的 NDC 映射仍然落在正确的游戏区域。
+            if viewport_rect:
+                self.ctx.viewport = viewport_rect
         if do_profile:
             profile_segments['render_bg'] = profile_segments.get('render_bg', 0.0) + (time.perf_counter() - seg_start)
 
@@ -537,6 +689,12 @@ class Renderer:
 
         # 还原视口
         self.ctx.viewport = prev_viewport
+
+        # 重新把 ui_bg 贴到游戏视口以外的 4 条边框区域
+        # （背景渲染器内部会 ctx.screen.use() 把 viewport 改回整窗口，
+        #  顺带把 HUD / 边框区域的 ui_bg 也刷掉——此处补回来）
+        if viewport_rect:
+            self._repaint_window_bg_outside_viewport(viewport_rect, (win_w, win_h))
 
         # 绘制游戏视口边框（在窗口坐标空间）
         if viewport_rect:

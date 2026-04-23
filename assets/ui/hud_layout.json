@@ -2,39 +2,45 @@
   "panel": {
     "size": [320, 896],
     "bg_color": [16, 16, 32],
-    "bg_alpha": 0.6,
+    "bg_alpha": 0.0,
     "margin_right": 32,
     "gap_to_game": 16
   },
   "layout": {
-    "hiscore_label": [10, 10],
-    "hiscore_value": [140, 10],
-    "score_label": [10, 40],
-    "score_value": [140, 40],
+    "section_score_bg":   [8,   10, 304, 116],
+    "section_stats_bg":   [8,  138, 304, 144],
+    "section_bonus_bg":   [8,  294, 304,  80],
+    "section_heat_bg":    [8,  386, 304, 182],
 
-    "player_label": [10, 80],
-    "player_icons": [90, 80],
+    "divider_score_stats": [20, 130, 280, 1],
+    "divider_stats_bonus": [20, 286, 280, 1],
+    "divider_bonus_heat":  [20, 382, 280, 1],
 
-    "bomb_label": [10, 110],
-    "bomb_icons": [90, 110],
+    "hiscore_label": [22, 20],
+    "hiscore_value": [298, 42],
+    "score_label":   [22, 74],
+    "score_value":   [298, 96],
 
-    "power_label": [10, 140],
-    "power_value": [90, 140],
-    "power_bar": [10, 165],
-    "power_bar_width": 200,
-    "power_bar_height": 12,
+    "player_label": [22, 148],
+    "player_icons": [100, 148],
+    "bomb_label":   [22, 180],
+    "bomb_icons":   [100, 180],
+    "power_label":  [22, 212],
+    "power_value":  [298, 212],
+    "power_bar":    [20, 244],
+    "power_bar_width": 280,
+    "power_bar_height": 10,
 
-    "graze_label": [10, 195],
-    "graze_value": [80, 195],
-
-    "point_label": [150, 195],
-    "point_value": [220, 195],
+    "graze_label":  [22, 304],
+    "graze_value":  [298, 304],
+    "point_label":  [22, 336],
+    "point_value":  [298, 336],
 
     "boss_hp_bar": [20, 5],
     "boss_hp_bar_width": 344,
     "boss_hp_bar_height": 8,
-    "spell_name": [192, 25],
-    "spell_time": [350, 25],
+    "spell_name":  [192, 25],
+    "spell_time":  [350, 25],
     "spell_bonus": [192, 45]
   }
 }

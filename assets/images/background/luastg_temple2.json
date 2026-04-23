@@ -1,0 +1,311 @@
+{
+  "name": "luastg_temple2",
+  "description": "Editable draft generated from LuaSTG background 'temple2'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "temple2",
+    "lua": "temple2.lua"
+  },
+  "textures": {
+    "t2_bg": {
+      "path": "temple2/t2_bg.png",
+      "description": "Imported from temple2/t2_bg.png"
+    },
+    "t2_bg1": {
+      "path": "temple2/t2_bg1.png",
+      "description": "Imported from temple2/t2_bg1.png"
+    },
+    "t2_bg2": {
+      "path": "temple2/t2_bg2.png",
+      "description": "Imported from temple2/t2_bg2.png"
+    },
+    "t2_fog": {
+      "path": "temple2/t2_fog.png",
+      "description": "Imported from temple2/t2_fog.png"
+    },
+    "t2_o1": {
+      "path": "temple2/t2_o1.png",
+      "description": "Imported from temple2/t2_o1.png"
+    },
+    "t2_o2": {
+      "path": "temple2/t2_o2.png",
+      "description": "Imported from temple2/t2_o2.png"
+    },
+    "t2_o3": {
+      "path": "temple2/t2_o3.png",
+      "description": "Imported from temple2/t2_o3.png"
+    },
+    "t2_step": {
+      "path": "temple2/t2_step.png",
+      "description": "Imported from temple2/t2_step.png"
+    },
+    "t2_torii": {
+      "path": "temple2/t2_torii.png",
+      "description": "Imported from temple2/t2_torii.png"
+    },
+    "t2_yuki": {
+      "path": "temple2/t2_yuki.png",
+      "description": "Imported from temple2/t2_yuki.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      0.8,
+      -4.1
+    ],
+    "at": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.49999999999999994,
+    "z_near": 1.8,
+    "z_far": 20.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 0.0,
+    "end": 18.0
+  },
+  "scroll": {
+    "base_speed": 0.153,
+    "direction": [
+      0.0,
+      1.0
+    ]
+  },
+  "layers": [
+    {
+      "name": "t2_bg",
+      "texture": "t2_bg",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "t2_bg1",
+      "texture": "t2_bg1",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "t2_bg2",
+      "texture": "t2_bg2",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "t2_fog",
+      "texture": "t2_fog",
+      "z_order": 3,
+      "z_depth": -0.15000000000000002,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "t2_o1",
+      "texture": "t2_o1",
+      "z_order": 4,
+      "z_depth": -0.2,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "t2_o2",
+      "texture": "t2_o2",
+      "z_order": 5,
+      "z_depth": -0.25,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "t2_o3",
+      "texture": "t2_o3",
+      "z_order": 6,
+      "z_depth": -0.30000000000000004,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "t2_step",
+      "texture": "t2_step",
+      "z_order": 7,
+      "z_depth": -0.35000000000000003,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "t2_torii",
+      "texture": "t2_torii",
+      "z_order": 8,
+      "z_depth": -0.4,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "t2_yuki",
+      "texture": "t2_yuki",
+      "z_order": 9,
+      "z_depth": -0.45,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "name": "luastg_bamboo",
+  "description": "Editable draft generated from LuaSTG background 'bamboo'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "bamboo",
+    "lua": "bamboo.lua"
+  },
+  "textures": {
+    "bamboo": {
+      "path": "bamboo/bamboo.png",
+      "description": "Imported from bamboo/bamboo.png"
+    },
+    "ground": {
+      "path": "bamboo/ground.png",
+      "description": "Imported from bamboo/ground.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      3.5,
+      -5.0
+    ],
+    "at": [
+      0.0,
+      1.5,
+      0.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.7,
+    "z_near": 1.0,
+    "z_far": 24.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 7.0,
+    "end": 20.0
+  },
+  "scroll": {
+    "base_speed": 0.003,
+    "direction": [
+      0,
+      1
+    ]
+  },
+  "layers": [
+    {
+      "name": "bamboo",
+      "texture": "bamboo",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "ground",
+      "texture": "ground",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

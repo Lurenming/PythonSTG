@@ -493,30 +493,31 @@ class BambooBackground(ProceduralBackground):
 
 
 class MagicForestBackground(ProceduralBackground):
-    """魔法森林背景"""
+    """魔法森林背景 - 移植自 magic_forest.lua"""
     
     name = "magic_forest"
+    texture_dir = "magic_forest"
+    initial_speed = 0.004
     
     def __init__(self, renderer):
         super().__init__(renderer)
-        self.speed = 0.0015
+        self.speed = self.initial_speed
         self.yos = 0.0
     
     def init(self):
-        self.load_texture('forest_1', 'magic_forest/magic_forest_1.png')
-        self.load_texture('forest_2', 'magic_forest/magic_forest_2.png')
+        self.load_texture('magic_forest_ground', f'{self.texture_dir}/ground.png')
+        self.load_texture('magic_forest_mask', f'{self.texture_dir}/mask.png')
         
         self.set_camera(
-            eye=(0, -2, 1.8),
-            at=(0, 0, 0),
+            eye=(0.25, -2.2, 1.1),
+            at=(0.2, 0, 0),
             up=(0, 0, 1),
-            fovy=0.5,
-            z_near=0.5,
-            z_far=6.0
+            fovy=0.35,
+            z_near=1.8,
+            z_far=4.5
         )
         
-        # 深绿色雾效
-        self.set_fog((0.02, 0.08, 0.02, 1.0), 2.0, 5.0, True)
+        self.set_fog((0, 0, 0, 0), 0, 0, False)
     
     def update(self, dt: float):
         super().update(dt)
@@ -528,22 +529,218 @@ class MagicForestBackground(ProceduralBackground):
         
         y = self.yos % 1
         
-        # 森林地面
-        for i in range(-4, 5):
-            self.render_quad('forest_1',
-                -1.5, i - y, 0,
-                -1.5, i + 1 - y, 0,
-                1.5, i + 1 - y, 0,
-                1.5, i - y, 0)
+        for i in range(-1, 2):
+            self.render_quad('magic_forest_ground',
+                0, 0 - y + i, 0,
+                0, 1 - y + i, 0,
+                1, 1 - y + i, 0,
+                1, -y + i, 0)
+            self.render_quad('magic_forest_ground',
+                -1, 0 - y + i, 0,
+                -1, 1 - y + i, 0,
+                0, 1 - y + i, 0,
+                0, -y + i, 0)
         
-        # 树木剪影层
-        for i in range(-4, 5):
-            self.render_quad('forest_2',
-                -1.5, i - y * 0.7, 0.3,
-                -1.5, i + 1 - y * 0.7, 0.3,
-                1.5, i + 1 - y * 0.7, 0.3,
-                1.5, i - y * 0.7, 0.3,
-                alpha=0.85)
+        for i in range(-1, 3):
+            self.render_quad('magic_forest_mask',
+                0, 0 - y + i, -0.2,
+                0, 1 - y + i, -0.2,
+                1, 1 - y + i, -0.2,
+                1, -y + i, -0.2)
+            self.render_quad('magic_forest_mask',
+                -1, 0 - y + i, -0.2,
+                -1, 1 - y + i, -0.2,
+                0, 1 - y + i, -0.2,
+                0, -y + i, -0.2)
+
+
+class MagicForestFastBackground(MagicForestBackground):
+    """高速魔法森林背景 - 移植自 magic_forest_fast.lua"""
+
+    name = "magic_forest_fast"
+    texture_dir = "magic_forest_fast"
+    initial_speed = 0.06
+
+
+class RiverBackground(ProceduralBackground):
+    """河流背景 - 移植自 river.lua"""
+
+    name = "river"
+
+    def __init__(self, renderer):
+        super().__init__(renderer)
+        self.speed = 0.004
+        self.zos = 0.0
+
+    def init(self):
+        self.load_texture('river_tree', 'river/river_tree.png')
+        self.load_texture('river_left_bank', 'river/river_bank.png')
+        self.load_texture('river_right_bank', 'river/river_bank.png')
+        self.load_texture('river_water', 'river/river_water.png')
+        self.load_texture('river_bed', 'river/river_bed.png')
+
+        self.set_camera(
+            eye=(0.0, 1.6, -1.4),
+            at=(0.0, 0.0, -0.2),
+            up=(0.0, 1.0, 0.0),
+            fovy=0.62,
+            z_near=1.0,
+            z_far=3.7
+        )
+        self.set_fog((0, 0, 0, 0), 2.5, 3.7, False)
+
+    def update(self, dt: float):
+        super().update(dt)
+        self.zos += self.speed
+
+    def render(self):
+        self.clear_quads()
+        self.apply_camera()
+
+        z = self.zos % 1
+        for i in range(-1, 2):
+            self.render_quad('river_bed',
+                0.2, -0.6, 1 - z + i,
+                1.2, -0.6, 1 - z + i,
+                1.2, -0.6, 0 - z + i,
+                0.2, -0.6, 0 - z + i)
+            self.render_quad('river_bed',
+                0.2, -0.6, 1 - z + i,
+                -0.8, -0.6, 1 - z + i,
+                -0.8, -0.6, 0 - z + i,
+                0.2, -0.6, 0 - z + i)
+
+        for i in range(-1, 2):
+            self.render_quad('river_water',
+                -0.2, -0.4, 1 - z + i,
+                0.8, -0.4, 1 - z + i,
+                0.8, -0.4, 0 - z + i,
+                -0.2, -0.4, 0 - z + i,
+                alpha=0.25)
+            self.render_quad('river_water',
+                -1.2, -0.4, 1 - z + i,
+                -0.2, -0.4, 1 - z + i,
+                -0.2, -0.4, 0 - z + i,
+                -1.2, -0.4, 0 - z + i,
+                alpha=0.25)
+
+        for i in range(-1, 2):
+            self.render_quad('river_water',
+                0, -0.2, 1 - z + i,
+                1, -0.2, 1 - z + i,
+                1, -0.2, 0 - z + i,
+                0, -0.2, 0 - z + i,
+                alpha=0.25)
+            self.render_quad('river_water',
+                -1, -0.2, 1 - z + i,
+                0, -0.2, 1 - z + i,
+                0, -0.2, 0 - z + i,
+                -1, -0.2, 0 - z + i,
+                alpha=0.25)
+
+        for i in range(-1, 1):
+            self.render_quad('river_left_bank',
+                -0.75, 0, 1 - z + i,
+                -0.25, 0, 1 - z + i,
+                -0.25, 0, 0 - z + i,
+                -0.75, 0, 0 - z + i)
+            self.render_quad('river_right_bank',
+                0.25, 0, 1 - z + i,
+                0.75, 0, 1 - z + i,
+                0.75, 0, 0 - z + i,
+                0.25, 0, 0 - z + i)
+
+        z2 = self.zos % 2
+        for i in range(-2, 1, 2):
+            self.render_quad('river_tree',
+                -0.5, 0.6, 2 - z2 + i,
+                0, 0.6, 2 - z2 + i,
+                0, 0.6, 1 - z2 + i,
+                -0.5, 0.6, 1 - z2 + i)
+            self.render_quad('river_tree',
+                0.5, 0.6, 1 - z2 + i,
+                0, 0.6, 1 - z2 + i,
+                0, 0.6, 0 - z2 + i,
+                0.5, 0.6, 0 - z2 + i)
+
+
+class WorldBackground(ProceduralBackground):
+    """高速网格背景 - 移植自 world.lua，适合作为 Stage 2 道中背景"""
+
+    name = "world"
+
+    def __init__(self, renderer):
+        super().__init__(renderer)
+        self.speed = 0.015
+        self.zos = 0.0
+        self.frame_count = 0
+
+    def init(self):
+        self.load_texture('blue_line', 'world/blue_line.png')
+        self.load_texture('blue', 'world/blue.png')
+        self.load_texture('zhuzi', 'world/zhuzi.png')
+
+        self.set_camera(
+            eye=(0.0, 0.9, -5.2),
+            at=(0.0, 4.3, -3.6),
+            up=(0.0, 2.9, 5.7),
+            fovy=0.72,
+            z_near=0.01,
+            z_far=100.0
+        )
+        self.set_fog((0, 0, 0, 0), 1.0, 60.0, False)
+
+    def update(self, dt: float):
+        super().update(dt)
+        self.frame_count += 1
+        self.zos += self.speed
+
+        if self.frame_count <= 180:
+            self.camera_at = (
+                0.0,
+                4.3 - 3.6 * math.sin(self.frame_count / 2),
+                -3.6
+            )
+        elif 600 < self.frame_count < 2600:
+            t = (self.frame_count - 600) * 0.18
+            self.camera_at = (
+                0.5 * math.sin(t),
+                0.7 + 0.6 * math.sin(t),
+                -3.6 + 0.6 * math.sin(t)
+            )
+
+    def render(self):
+        self.clear_quads()
+        self.apply_camera()
+
+        z = (2 * self.zos) % 1
+        for i in range(-4, 24):
+            for j in range(-6, 7):
+                self.render_quad('blue',
+                    -1 + j, -1, 1 - z + i,
+                    1 + j, -1, 1 - z + i,
+                    1 + j, -1, -1 - z + i,
+                    -1 + j, -1, -1 - z + i,
+                    alpha=50 / 255)
+                self.render_quad('blue_line',
+                    -1 + j, -1, 1 - z + i,
+                    1 + j, -1, 1 - z + i,
+                    1 + j, -1, -1 - z + i,
+                    -1 + j, -1, -1 - z + i)
+
+        zz = (5 * self.zos) % 5
+        for i in range(-4, 8):
+            for j in range(0, 4):
+                self.render_quad('zhuzi',
+                    -16.5 + 3 * j, 1.5, 1 - zz + 5 * i,
+                    -16.5 + 3 * j, 1.5, 0.75 - zz + 5 * i,
+                    -16.5 + 3 * j, -1, 0.75 - zz + 5 * i,
+                    -16.5 + 3 * j, -1, 1 - zz + 5 * i)
+                self.render_quad('zhuzi',
+                    16.5 - 3 * j, 1.5, 1 - zz + 5 * i,
+                    16.5 - 3 * j, 1.5, 0.75 - zz + 5 * i,
+                    16.5 - 3 * j, -1, 0.75 - zz + 5 * i,
+                    16.5 - 3 * j, -1, 1 - zz + 5 * i)
 
 
 class SpellcardBackground(ProceduralBackground):
@@ -556,7 +753,7 @@ class SpellcardBackground(ProceduralBackground):
         self.intensity = 1.0
     
     def init(self):
-        self.load_texture('spell_bg', 'spellcard/spellcard_bg.png')
+        self.load_texture('spell_bg', 'spellcard/background.png')
         
         self.set_camera(
             eye=(0, 0, 1),
@@ -610,6 +807,11 @@ PROCEDURAL_BACKGROUNDS: Dict[str, type] = {
     'temple': TempleBackground,
     'bamboo': BambooBackground,
     'magic_forest': MagicForestBackground,
+    'stage1_bg': MagicForestBackground,
+    'magic_forest_fast': MagicForestFastBackground,
+    'river': RiverBackground,
+    'world': WorldBackground,
+    'stage2_bg': WorldBackground,
     'spellcard': SpellcardBackground,
 }
 

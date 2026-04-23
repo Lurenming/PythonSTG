@@ -473,6 +473,17 @@ def list_available_backgrounds() -> List[str]:
     
     backgrounds = []
     for f in os.listdir(bg_dir):
-        if f.endswith('.json'):
-            backgrounds.append(f[:-5])  # 移除 .json 后缀
+        if not f.endswith('.json'):
+            continue
+        path = os.path.join(bg_dir, f)
+        try:
+            with open(path, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+            if not isinstance(data, dict):
+                continue
+            if "textures" not in data or "layers" not in data:
+                continue
+        except Exception:
+            continue
+        backgrounds.append(f[:-5])  # 移除 .json 后缀
     return backgrounds

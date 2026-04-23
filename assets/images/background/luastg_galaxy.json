@@ -1,0 +1,103 @@
+{
+  "name": "luastg_galaxy",
+  "description": "Editable draft generated from LuaSTG background 'galaxy'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "galaxy",
+    "lua": "galaxy.lua"
+  },
+  "textures": {
+    "galaxy": {
+      "path": "galaxy/galaxy.png",
+      "description": "Imported from galaxy/galaxy.png"
+    },
+    "timg": {
+      "path": "galaxy/timg.jpg",
+      "description": "Imported from galaxy/timg.jpg"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      -2.0,
+      0.0
+    ],
+    "at": [
+      0.0,
+      0.0,
+      2.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.35,
+    "z_near": 0.8,
+    "z_far": 8.0
+  },
+  "fog": {
+    "enabled": false,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 0.0,
+    "end": 0.0
+  },
+  "scroll": {
+    "base_speed": 0.003,
+    "direction": [
+      0,
+      1
+    ]
+  },
+  "layers": [
+    {
+      "name": "galaxy",
+      "texture": "galaxy",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "timg",
+      "texture": "timg",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

@@ -50,6 +50,9 @@ class PlayerBase(Entity):
         self.is_focused = False
         self.is_shooting = False
         self.invincible_timer = 0.0
+        self.bomb_power_timer = 0.0
+        self.bomb_shot_multiplier = 3
+        self.bomb_damage_multiplier = 3.0
         self.death_timer = 0.0
         self.is_dead = False
         self.is_respawning = False
@@ -271,6 +274,9 @@ class PlayerBase(Entity):
         if self.spell_cooldown > 0:
             self.spell_cooldown -= dt
         
+        if self.bomb_power_timer > 0:
+            self.bomb_power_timer -= dt
+        
         if self.is_dead:
             self.death_timer += dt
             self.animation.update(dt, 0)
@@ -301,7 +307,8 @@ class PlayerBase(Entity):
                     self.is_shooting, self.is_focused, self.power,
                     spread_range=shot_params.get('spread_range'),
                     target_angle=shot_params.get('target_angle'),
-                    damage_bonus=shot_params.get('damage_bonus', 1.0)
+                    damage_bonus=shot_params.get('damage_bonus', 1.0),
+                    projectile_multiplier=self.get_bomb_shot_multiplier(),
                 )
         else:
             # 不射击时仍需更新 shot_system（option 位置 lerp 等）
@@ -314,7 +321,8 @@ class PlayerBase(Entity):
                     False, self.is_focused, self.power,
                     spread_range=shot_params.get('spread_range'),
                     target_angle=shot_params.get('target_angle'),
-                    damage_bonus=shot_params.get('damage_bonus', 1.0)
+                    damage_bonus=shot_params.get('damage_bonus', 1.0),
+                    projectile_multiplier=self.get_bomb_shot_multiplier(),
                 )
 
         # 更新僚机位置和动画（v3）
@@ -367,10 +375,14 @@ class PlayerBase(Entity):
                 if self.skill_manager.try_activate('bomb'):
                     if self.script and self.script.on_skill('bomb'):
                         self.bombs -= 1
+                        if self.on_bomb_callback:
+                            self.on_bomb_callback()
                         return
             
             if self.script and self.script.on_bomb(self.is_focused):
                 self.bombs -= 1
+                if self.on_bomb_callback:
+                    self.on_bomb_callback()
                 return
             
             self.bombs -= 1
@@ -381,6 +393,15 @@ class PlayerBase(Entity):
             self.spell_cooldown = cooldown
             if self.on_bomb_callback:
                 self.on_bomb_callback()
+
+    def is_bomb_power_active(self) -> bool:
+        return self.bomb_power_timer > 0
+
+    def get_bomb_shot_multiplier(self) -> int:
+        return self.bomb_shot_multiplier if self.is_bomb_power_active() else 1
+
+    def get_bomb_damage_multiplier(self) -> float:
+        return self.bomb_damage_multiplier if self.is_bomb_power_active() else 1.0
     
     def set_target(self, target_pos: Optional[Tuple[float, float]]):
         self.target_pos = target_pos
@@ -518,5 +539,6 @@ class PlayerBase(Entity):
         self.is_dead = False
         self.is_respawning = False
         self.invincible_timer = 0.0
+        self.bomb_power_timer = 0.0
         self.bullet_pool.clear()
         self.option_manager.clear()

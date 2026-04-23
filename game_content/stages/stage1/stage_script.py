@@ -29,15 +29,15 @@ class Stage1(StageScript):
     subtitle = "The Misplaced Manhole Cover and the Subterranean Drifter"
     bgm = "00.wav"
     boss_bgm = "01.wav"
-    background = "stage1_bg"
+    background = "luastg_hongmoguanB"
     DEBUG_BOOKMARK = False  # True 时跳过前置对话，从 Stage1Wave1 开始测
 
     # ===== Boss 定义 =====
 
     boss = BossDef(
-        id="star_boss",
-        name="Star Sapphire",
-        texture="star",
+        id="sunny_boss",
+        name="Sunny Milk",
+        texture="sunny",
         phases=[
             spellcard(CoalInfernoSpell, "煤符「燃尽一切的巨大之煤」", hp=1500, time=55),
             spellcard(GasExplosionSpell, "烈符「瓦斯爆炸」", hp=1800, time=60),
@@ -106,6 +106,12 @@ class Stage1(StageScript):
             {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "什么叫北京语言大学？", "portrait": "Happy"},
             {"character": "narrator", "name": "", "position": "center", "text": "（猫到了矿门口）", "portrait": ""},
             {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "怎么矿院井盖出现在那？", "portrait": "Happy"},
+        ])
+
+        # Boss 出现：从地底道中切到更像妖精恶作剧的魔法背景。
+        await self.set_background("luastg_ball")
+
+        await self.play_dialogue([
             {"character": "Sunny_Milk",   "name": "桑尼", "position": "left",  "text": "让我们回避这个悲伤的话题。", "portrait": "Happy"},
             {"character": "Kaenbyou_Rin", "name": "猫", "position": "right", "text": "咦？我在这里站着不动都能抓到桑尼哦，嚯嚯嚯，夸张哦。", "portrait": "Happy"},
             {"character": "Sunny_Milk",   "name": "桑尼", "position": "left",  "text": "原神刘子源，星铁建童工。", "portrait": "Happy"},
@@ -115,11 +121,7 @@ class Stage1(StageScript):
             {"character": "Sunny_Milk",   "name": "桑尼", "position": "left",  "text": "我不怕你，因为我们矿大有巨大的煤。", "portrait": "Anger"},
         ])
 
-        await self.play_dialogue([
-            {"character": "Hinanawi_Tenshi", "name": "天子",       "position": "left",  "text": "打倒了先头部队，接下来是谁？",     "portrait": "Happy"},
-            {"character": "Star_Sapphire",   "name": "Star Sapphire", "position": "right", "text": "我已经把你的所有动作都看穿了！", "portrait": "Happy"},
-            {"character": "Hinanawi_Tenshi", "name": "天子",       "position": "left",  "text": "哦？那就试试看吧。",               "portrait": "anger"},
-        ])
+
 
         await self.run_boss(self.boss)
 

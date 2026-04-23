@@ -1,0 +1,129 @@
+{
+  "name": "luastg_hongmoguanB",
+  "description": "Editable draft generated from LuaSTG background 'hongmoguanB'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "hongmoguanB",
+    "lua": "hongmoguanB.lua"
+  },
+  "textures": {
+    "floor": {
+      "path": "hongmoguanB/floor.png",
+      "description": "Imported from hongmoguanB/floor.png"
+    },
+    "mask": {
+      "path": "hongmoguanB/mask.png",
+      "description": "Imported from hongmoguanB/mask.png"
+    },
+    "white": {
+      "path": "hongmoguanB/white.png",
+      "description": "Imported from hongmoguanB/white.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.2,
+      1.1,
+      -1.2000000000000002
+    ],
+    "at": [
+      0.0,
+      0.1,
+      4.3999999999999995
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.8999999999999999,
+    "z_near": 1.0,
+    "z_far": 100.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 0.0,
+    "end": 3.0
+  },
+  "scroll": {
+    "base_speed": 0.17300000000000004,
+    "direction": [
+      0.0,
+      1.0
+    ]
+  },
+  "layers": [
+    {
+      "name": "floor",
+      "texture": "floor",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "mask",
+      "texture": "mask",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "white",
+      "texture": "white",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

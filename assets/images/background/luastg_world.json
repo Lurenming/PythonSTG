@@ -1,0 +1,129 @@
+{
+  "name": "luastg_world",
+  "description": "Editable draft generated from LuaSTG background 'world'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "world",
+    "lua": "world.lua"
+  },
+  "textures": {
+    "blue": {
+      "path": "world/blue.png",
+      "description": "Imported from world/blue.png"
+    },
+    "blue_line": {
+      "path": "world/blue_line.png",
+      "description": "Imported from world/blue_line.png"
+    },
+    "zhuzi": {
+      "path": "world/zhuzi.png",
+      "description": "Imported from world/zhuzi.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      0.9,
+      -5.2
+    ],
+    "at": [
+      0.0,
+      4.3,
+      -3.6
+    ],
+    "up": [
+      0.0,
+      2.9,
+      5.7
+    ],
+    "fovy": 0.72,
+    "z_near": 0.01,
+    "z_far": 100.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 1.0,
+    "end": 60.0
+  },
+  "scroll": {
+    "base_speed": 0.003,
+    "direction": [
+      0,
+      1
+    ]
+  },
+  "layers": [
+    {
+      "name": "blue",
+      "texture": "blue",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "blue_line",
+      "texture": "blue_line",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "zhuzi",
+      "texture": "zhuzi",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

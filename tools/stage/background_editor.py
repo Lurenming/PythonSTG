@@ -14,6 +14,7 @@ import sys
 import os
 import json
 import math
+import re
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
 
@@ -44,6 +45,164 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 ASSETS_ROOT = PROJECT_ROOT / "assets"
 BG_ROOT = ASSETS_ROOT / "images" / "background"
+
+IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp"}
+MANIFEST_NAMES = {"luastg_backgrounds.json"}
+
+
+def _is_scene_config_path(path: Path) -> bool:
+    """Return True when a JSON file looks like an editable background scene."""
+    if path.name in MANIFEST_NAMES:
+        return False
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return False
+    return isinstance(data, dict) and "textures" in data and "layers" in data
+
+
+def _safe_texture_name(raw: str, used: set) -> str:
+    name = re.sub(r"\W+", "_", raw, flags=re.UNICODE).strip("_").lower()
+    if not name:
+        name = "image"
+    base = name
+    index = 1
+    while name in used:
+        index += 1
+        name = f"{base}_{index}"
+    used.add(name)
+    return name
+
+
+def _numbers(text: str) -> List[float]:
+    return [float(x) for x in re.findall(r"-?\d+(?:\.\d+)?", text)]
+
+
+def _parse_luastg_camera(lua_text: str) -> dict:
+    camera = {
+        "eye": [0.0, 0.0, 1.0],
+        "at": [0.0, 0.0, 0.0],
+        "up": [0.0, 1.0, 0.0],
+        "fovy": 0.8,
+        "z_near": 0.1,
+        "z_far": 10.0,
+    }
+    fog = {
+        "enabled": False,
+        "color": [0, 0, 0, 255],
+        "start": 0.0,
+        "end": 10.0,
+    }
+
+    for key in ("eye", "at", "up"):
+        m = re.search(rf"Set3D\(\s*['\"]{key}['\"]\s*,([^)]+)\)", lua_text)
+        if m:
+            vals = _numbers(m.group(1))[:3]
+            if len(vals) == 3:
+                camera[key] = vals
+
+    m = re.search(r"Set3D\(\s*['\"]fovy['\"]\s*,([^)]+)\)", lua_text)
+    if m:
+        vals = _numbers(m.group(1))
+        if vals:
+            camera["fovy"] = vals[0]
+
+    m = re.search(r"Set3D\(\s*['\"]z['\"]\s*,([^)]+)\)", lua_text)
+    if m:
+        vals = _numbers(m.group(1))[:2]
+        if len(vals) == 2:
+            camera["z_near"], camera["z_far"] = vals
+
+    m = re.search(r"Set3D\(\s*['\"]fog['\"]\s*,([^)]+)\)", lua_text)
+    if m:
+        vals = _numbers(m.group(1))[:2]
+        if len(vals) == 2:
+            fog["start"], fog["end"] = vals
+            fog["enabled"] = vals[1] > vals[0]
+
+    return {"camera": camera, "fog": fog}
+
+
+def generate_luastg_json_configs(overwrite: bool = False) -> Tuple[int, List[str]]:
+    """
+    Create editable data-driven JSON drafts for copied LuaSTG background folders.
+
+    The generated files are named luastg_<folder>.json so they do not shadow the
+    engine's hand-written JSON configs or procedural Python background names.
+    """
+    if not BG_ROOT.exists():
+        return 0, []
+
+    generated: List[str] = []
+    for bg_dir in sorted([p for p in BG_ROOT.iterdir() if p.is_dir()]):
+        out_path = BG_ROOT / f"luastg_{bg_dir.name}.json"
+        if out_path.exists() and not overwrite:
+            continue
+
+        images = sorted(
+            [p for p in bg_dir.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXTS],
+            key=lambda p: p.name.lower(),
+        )
+        if not images:
+            continue
+
+        lua_files = sorted(bg_dir.glob("*.lua"))
+        lua_text = ""
+        if lua_files:
+            try:
+                lua_text = lua_files[0].read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                lua_text = ""
+        parsed = _parse_luastg_camera(lua_text)
+
+        used = set()
+        textures = {}
+        layers = []
+        for idx, image in enumerate(images):
+            tex_name = _safe_texture_name(image.stem, used)
+            rel = image.relative_to(BG_ROOT).as_posix()
+            textures[tex_name] = {
+                "path": rel,
+                "description": f"Imported from {bg_dir.name}/{image.name}",
+            }
+            layers.append({
+                "name": tex_name,
+                "texture": tex_name,
+                "z_order": idx,
+                "z_depth": -0.05 * idx,
+                "blend_mode": "normal",
+                "alpha": 1.0 if idx == 0 else 0.85,
+                "scroll_multiplier": 1.0,
+                "tile": {
+                    "x_range": [-1, 1],
+                    "y_range": [-4, 7],
+                    "size": 1.0,
+                },
+                "variants": [],
+                "enabled": True,
+            })
+
+        config = {
+            "name": f"luastg_{bg_dir.name}",
+            "description": f"Editable draft generated from LuaSTG background '{bg_dir.name}'.",
+            "source": {
+                "kind": "luastg_stage_background",
+                "folder": bg_dir.name,
+                "lua": lua_files[0].name if lua_files else "",
+            },
+            "textures": textures,
+            "camera": parsed["camera"],
+            "fog": parsed["fog"],
+            "scroll": {"base_speed": 0.003, "direction": [0, 1]},
+            "layers": layers,
+        }
+
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        generated.append(out_path.name)
+
+    return len(generated), generated
 
 
 # ==================== 3D 数学工具 ====================
@@ -404,6 +563,11 @@ class FileTreePanel(QWidget):
         btn_refresh.setToolTip("刷新文件树")
         btn_refresh.clicked.connect(self.refresh_tree)
         header.addWidget(btn_refresh)
+        btn_import = QPushButton("导入")
+        btn_import.setFixedWidth(48)
+        btn_import.setToolTip("从已复制的 LuaSTG 背景目录生成可编辑 JSON 草稿")
+        btn_import.clicked.connect(self._import_luastg_configs)
+        header.addWidget(btn_import)
         layout.addLayout(header)
 
         self.tree = QTreeWidget()
@@ -447,7 +611,7 @@ class FileTreePanel(QWidget):
             return
 
         # 场景配置 (.json)
-        jsons = sorted(BG_ROOT.glob("*.json"))
+        jsons = sorted([p for p in BG_ROOT.glob("*.json") if _is_scene_config_path(p)])
         if jsons:
             root = QTreeWidgetItem(self.tree,
                                    ["📁 场景配置", f"{len(jsons)} 个"])
@@ -475,6 +639,26 @@ class FileTreePanel(QWidget):
                     img_item.setData(0, Qt.UserRole, str(img))
                     img_item.setData(0, Qt.UserRole + 1, "image")
 
+        # Lua/模型等原始资源
+        raw_files = []
+        for d in dirs:
+            raw_files.extend(
+                [p for p in d.iterdir()
+                 if p.is_file() and p.suffix.lower() in {".lua", ".obj", ".mtl"}]
+            )
+        if raw_files:
+            root = QTreeWidgetItem(self.tree, ["📁 原始 LuaSTG", f"{len(raw_files)} 个"])
+            for d in dirs:
+                files = [p for p in sorted(d.iterdir())
+                         if p.is_file() and p.suffix.lower() in {".lua", ".obj", ".mtl"}]
+                if not files:
+                    continue
+                dir_item = QTreeWidgetItem(root, [f"📂 {d.name}", f"{len(files)} 个"])
+                for file_path in files:
+                    item = QTreeWidgetItem(dir_item, [f"📄 {file_path.name}", file_path.suffix])
+                    item.setData(0, Qt.UserRole, str(file_path))
+                    item.setData(0, Qt.UserRole + 1, "raw")
+
     def _on_item_clicked(self, item, col):
         itype = item.data(0, Qt.UserRole + 1)
         path = item.data(0, Qt.UserRole)
@@ -483,12 +667,30 @@ class FileTreePanel(QWidget):
             self.image_selected.emit(path)
         elif itype == "json" and path:
             self.config_selected.emit(path)
+        elif itype == "raw" and path:
+            self.thumbnail.setText("原始资源")
+            self.thumb_info.setText(Path(path).name)
 
     def _on_item_double_clicked(self, item, col):
         itype = item.data(0, Qt.UserRole + 1)
         path = item.data(0, Qt.UserRole)
         if itype == "json" and path:
             self.config_selected.emit(path)
+
+    def _import_luastg_configs(self):
+        try:
+            count, files = generate_luastg_json_configs(overwrite=False)
+            self.refresh_tree()
+            if count:
+                sample = ", ".join(files[:5])
+                more = "" if len(files) <= 5 else f" 等 {len(files)} 个"
+                QMessageBox.information(
+                    self, "导入完成",
+                    f"已生成 {count} 个可编辑背景配置：{sample}{more}")
+            else:
+                QMessageBox.information(self, "无需导入", "没有新的 LuaSTG 背景需要生成配置。")
+        except Exception as e:
+            QMessageBox.critical(self, "导入失败", str(e))
 
     def _show_thumbnail(self, path):
         pix = QPixmap(path)
@@ -1527,7 +1729,7 @@ class BackgroundEditor(QMainWindow):
     def _export_scene_code(self):
         name = self.config.get("name", "background")
         available = sorted(
-            [f.stem for f in BG_ROOT.glob("*.json")]
+            [f.stem for f in BG_ROOT.glob("*.json") if _is_scene_config_path(f)]
         ) if BG_ROOT.exists() else []
         code = (
             f'# 在关卡脚本中使用此背景场景:\n'

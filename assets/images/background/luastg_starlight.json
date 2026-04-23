@@ -1,0 +1,181 @@
+{
+  "name": "luastg_starlight",
+  "description": "Editable draft generated from LuaSTG background 'starlight'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "starlight",
+    "lua": "stairs.lua"
+  },
+  "textures": {
+    "back": {
+      "path": "starlight/back.png",
+      "description": "Imported from starlight/back.png"
+    },
+    "ground": {
+      "path": "starlight/ground.png",
+      "description": "Imported from starlight/ground.png"
+    },
+    "stair": {
+      "path": "starlight/stair.png",
+      "description": "Imported from starlight/stair.png"
+    },
+    "starlight": {
+      "path": "starlight/starlight.png",
+      "description": "Imported from starlight/starlight.png"
+    },
+    "windows": {
+      "path": "starlight/windows.png",
+      "description": "Imported from starlight/windows.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      0.0,
+      -5.0
+    ],
+    "at": [
+      0.0,
+      0.0,
+      10.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.7,
+    "z_near": 1.0,
+    "z_far": 10000.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 7.0,
+    "end": 20.0
+  },
+  "scroll": {
+    "base_speed": 0.003,
+    "direction": [
+      0,
+      1
+    ]
+  },
+  "layers": [
+    {
+      "name": "back",
+      "texture": "back",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "ground",
+      "texture": "ground",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "stair",
+      "texture": "stair",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "starlight",
+      "texture": "starlight",
+      "z_order": 3,
+      "z_depth": -0.15000000000000002,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "windows",
+      "texture": "windows",
+      "z_order": 4,
+      "z_depth": -0.2,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

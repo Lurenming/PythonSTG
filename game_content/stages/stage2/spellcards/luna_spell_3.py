@@ -1,6 +1,7 @@
 import random
 from src.game.stage.spellcard import SpellCard
 from src.game.bullet.optimized_pool import CURVE_LINEAR_SPEED
+from src.game.bullet.tags import TAG_BOMB_PROTECTED_GRID
 
 class LunaSpell3(SpellCard):
     """
@@ -10,6 +11,9 @@ class LunaSpell3(SpellCard):
     """
 
     async def setup(self):
+        # LunaSpell2 uses its own cpline.png background; restore the shared boss
+        # background for the remaining Stage 2 boss phases.
+        self.ctx.set_background("luastg_gzz_stage04bg")
         await self.boss.move_to(0.0, 0.8, duration=60)
         
     async def run(self):
@@ -26,7 +30,8 @@ class LunaSpell3(SpellCard):
                     x=-1.5, y=1.4,
                     count=6, speed=24.5,
                     center_angle=-45, arc_angle=60,
-                    bullet_type="knife", color="cyan"
+                    bullet_type="knife", color="cyan",
+                    tag=TAG_BOMB_PROTECTED_GRID,
                 )
                 
                 # 右侧发射源：(1.4, 1.4)，向左下方 (-135度)
@@ -34,7 +39,8 @@ class LunaSpell3(SpellCard):
                     x=1.5, y=1.4,
                     count=6, speed=24.5,
                     center_angle=-135, arc_angle=60,
-                    bullet_type="knife", color="cyan"
+                    bullet_type="knife", color="cyan",
+                    tag=TAG_BOMB_PROTECTED_GRID,
                 )
                 
             # 2. Boss 本体的运动：缓慢在顶部左右巡逻

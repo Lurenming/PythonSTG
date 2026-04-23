@@ -83,17 +83,19 @@ class StarSpell3(SpellCard):
                 strata_index += 1
 
                 # 使用 CURVE_LINEAR_SPEED 模拟重力加速
-                # speed = base + amp * t（lifetime 秒）
-                # 初速很慢，越落越快
+                # context.py 把 speed 除以 60 再存储，curve_params 也需同步：
+                # stored_speed = base + amp * t（t 为秒）
+                # base = script_speed / 60, amp = 加速度 / 60
+                # 初速 4.0 NDC/s，加速 8.0 NDC/s²
                 idx = self.fire(
                     x=rock_x,
-                    y=1.1,            # 从屏幕顶部外侧开始
-                    angle=-90,        # 垂直向下
-                    speed=2.5,        # 初速很慢
+                    y=1.1,
+                    angle=-90,
+                    speed=4.0,
                     bullet_type="ball_l",
                     color=rock_color,
                     curve_type=CURVE_LINEAR_SPEED,
-                    curve_params=(10.0, 0.0, 0.0, 2.5),  # amp=10 → 每秒加速10，base=2.5
+                    curve_params=(8.0/60, 0.0, 0.0, 4.0/60),
                 )
                 if idx >= 0:
                     self._rocks.append((idx, frame, rock_x, rock_color))
@@ -109,9 +111,8 @@ class StarSpell3(SpellCard):
                 else:
                     # 检查当前 y 坐标
                     cy = float(self.ctx.bullet_pool.data['pos'][idx][1])
-                    if cy < -0.88:
-                        # 快触底了，提前排队爆炸
-                        # 把弹幕杀掉，在当前 cx 位置生成爆炸
+                    if cy < -0.92:
+                        # 触底爆炸：取当前实际 x 位置
                         cx = float(self.ctx.bullet_pool.data['pos'][idx][0])
                         self.ctx.bullet_pool.data['alive'][idx] = 0
                         self._pending_impacts.append((cx, rc))
@@ -124,21 +125,21 @@ class StarSpell3(SpellCard):
             # ============================================================
             for (ex, ec) in self._pending_impacts:
                 self.play_se("tan00", volume=0.1)
-                # 第一圈：紧密贴地的低速碎石，半圆扇形
+                # 第一圈：贴地的低速碎石，向上半圆扇形
                 for i in range(10):
-                    angle = random.uniform(5, 175)   # 向上半球
+                    angle = random.uniform(5, 175)
                     self.fire(
-                        x=ex, y=-0.88,
+                        x=ex, y=-0.92,
                         angle=angle,
                         speed=random.uniform(4.0, 9.0),
                         bullet_type="ball_m",
                         color=ec,
                     )
-                # 第二圈：几颗高速碎石弹得很高
+                # 第二圈：少量极速碎石弹高
                 for _ in range(4):
-                    angle = random.uniform(40, 140)  # 更集中向上
+                    angle = random.uniform(40, 140)
                     self.fire(
-                        x=ex, y=-0.88,
+                        x=ex, y=-0.92,
                         angle=angle,
                         speed=random.uniform(12.0, 18.0),
                         bullet_type="grain_a",

@@ -10,17 +10,17 @@ UI渲染器 - 使用ModernGL渲染UI元素
 import moderngl
 import numpy as np
 from typing import Dict, List, Optional
-from ..core.image_loader import SoftwareSurface
+from ..core.image_loader import SoftwareSurface, load_image_rgba
 from .bitmap_font import BitmapFont, get_font_manager
 
 
 class UIRenderer:
     """UI元素的OpenGL渲染器"""
-    
+
     def __init__(self, ctx: moderngl.Context, screen_width: int = 384, screen_height: int = 448):
         """
         初始化UI渲染器
-        
+
         Args:
             ctx: ModernGL上下文
             screen_width: 屏幕宽度（像素）
@@ -29,14 +29,18 @@ class UIRenderer:
         self.ctx = ctx
         self.screen_width = screen_width
         self.screen_height = screen_height
-        
+
         # 字体纹理缓存 {font_name: texture}
         self.font_textures: Dict[str, moderngl.Texture] = {}
-        
+
+        # UI背景纹理缓存 {path: texture}
+        self.bg_textures: Dict[str, moderngl.Texture] = {}
+
         # 初始化着色器
         self._init_text_shader()
         self._init_rect_shader()
-        
+        self._init_textured_rect_shader()
+
         # 字体管理器
         self.font_manager = get_font_manager()
     
@@ -96,6 +100,57 @@ class UIRenderer:
             [(self.text_vbo, '2f 2f 4f', 'in_position', 'in_uv', 'in_color')]
         )
     
+    def _init_textured_rect_shader(self):
+        """初始化纹理背景矩形着色器（用于UI面板背景图片）"""
+        vertex_shader = """
+        #version 330
+
+        uniform vec2 u_screen_size;
+
+        in vec2 in_position;
+        in vec2 in_uv;
+
+        out vec2 v_uv;
+
+        void main() {
+            vec2 ndc = (in_position / u_screen_size) * 2.0 - 1.0;
+            ndc.y = -ndc.y;
+            gl_Position = vec4(ndc, 0.0, 1.0);
+            v_uv = in_uv;
+        }
+        """
+
+        fragment_shader = """
+        #version 330
+
+        uniform sampler2D u_texture;
+        uniform float u_alpha;
+
+        in vec2 v_uv;
+        out vec4 f_color;
+
+        void main() {
+            vec4 tex_color = texture(u_texture, v_uv);
+            f_color = vec4(tex_color.rgb, tex_color.a * u_alpha);
+        }
+        """
+
+        self.textured_rect_program = self.ctx.program(
+            vertex_shader=vertex_shader,
+            fragment_shader=fragment_shader
+        )
+        self.textured_rect_program['u_texture'].value = 0
+        self.textured_rect_program['u_screen_size'].value = (self.screen_width, self.screen_height)
+        self.textured_rect_program['u_alpha'].value = 1.0
+
+        # position.xy + uv.xy = 4 floats per vertex, 6 vertices per quad
+        self.textured_rect_vbo = self.ctx.buffer(reserve=6 * 4 * 4)
+
+        self.textured_rect_vao = self.ctx.vertex_array(
+            self.textured_rect_program,
+            [(self.textured_rect_vbo, '2f 2f', 'in_position', 'in_uv')]
+        )
+
     def _init_rect_shader(self):
         """初始化矩形渲染着色器（用于条形图等）"""
         vertex_shader = """
@@ -141,6 +196,60 @@ class UIRenderer:
             [(self.rect_vbo, '2f 4f', 'in_position', 'in_color')]
         )
     
+    def load_bg_texture(self, path: str) -> bool:
+        """
+        加载UI背景图片到GPU纹理
+
+        Args:
+            path: 图片文件路径（如 'assets/ui/ui_bg.png'）
+
+        Returns:
+            bool: 是否成功
+        """
+        if path in self.bg_textures:
+            return True
+        try:
+            w, h, data = load_image_rgba(path, flip_y=True)
+            texture = self.ctx.texture((w, h), 4, data)
+            texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
+            self.bg_textures[path] = texture
+            print(f"已加载UI背景纹理: {path} ({w}x{h})")
+            return True
+        except Exception as e:
+            print(f"加载UI背景纹理失败 {path}: {e}")
+            return False
+
+    def render_textured_rect(self, x: float, y: float, width: float, height: float,
+                             texture_path: str, alpha: float = 1.0) -> None:
+        """
+        渲染纹理矩形（用于UI面板背景图片）
+
+        Args:
+            x, y: 左上角像素坐标
+            width, height: 尺寸（像素）
+            texture_path: 纹理路径（需先通过 load_bg_texture 加载）
+            alpha: 整体透明度 0.0-1.0
+        """
+        if texture_path not in self.bg_textures:
+            if not self.load_bg_texture(texture_path):
+                return
+
+        # UV坐标：(0,0)左上 → (1,1)右下（flip_y=True后已翻转，对应OpenGL坐标）
+        vertices = np.array([
+            # position         uv
+            x,         y,          0.0, 0.0,
+            x,         y + height, 0.0, 1.0,
+            x + width, y,          1.0, 0.0,
+            x + width, y,          1.0, 0.0,
+            x,         y + height, 0.0, 1.0,
+            x + width, y + height, 1.0, 1.0,
+        ], dtype='f4')
+
+        self.textured_rect_vbo.write(vertices.tobytes())
+        self.textured_rect_program['u_alpha'].value = alpha
+        self.bg_textures[texture_path].use(0)
+        self.textured_rect_vao.render(moderngl.TRIANGLES, vertices=6)
+
     def load_font_texture(self, font_name: str) -> bool:
         """
         加载字体纹理到GPU
@@ -349,6 +458,15 @@ class UIRenderer:
                     height=elem['height'],
                     color=elem.get('color', (0, 0, 0)),
                     alpha=elem.get('alpha', 0.5)
+                )
+            elif elem_type == 'textured_rect':
+                self.render_textured_rect(
+                    x=elem['position'][0],
+                    y=elem['position'][1],
+                    width=elem['width'],
+                    height=elem['height'],
+                    texture_path=elem['texture_path'],
+                    alpha=elem.get('alpha', 1.0)
                 )
     
     def cleanup(self) -> None:

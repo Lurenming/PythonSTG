@@ -30,8 +30,8 @@ class StreamingFairy(EnemyScript):
     # 贝塞尔控制点和终点（由子类覆盖）
     ctrl_x: float = -0.10
     ctrl_y: float =  0.58
-    end_x:  float =  0.92
-    end_y:  float = -0.28
+    end_x:  float =  1.25
+    end_y:  float = -1.15
 
     arc_duration: int = 280    # 完成弧线所需帧数
     shoot_y: float = 0.48      # 经过此 y 坐标时触发一次射击（屏幕中央偏上）
@@ -96,16 +96,16 @@ class StreamingFairyLeft(StreamingFairy):
     """从左侧入场、弧线向右飞出的引弹妖精"""
     ctrl_x = -0.10
     ctrl_y =  0.58
-    end_x  =  0.92
-    end_y  = -0.28
+    end_x  =  1.25
+    end_y  = -1.15
 
 
 class StreamingFairyRight(StreamingFairy):
     """从右侧入场、弧线向左飞出的引弹妖精（镜像）"""
     ctrl_x =  0.10
     ctrl_y =  0.58
-    end_x  = -0.92
-    end_y  = -0.28
+    end_x  = -1.25
+    end_y  = -1.15
 
 
 class StreamingFairyLeftHard(StreamingFairyLeft):

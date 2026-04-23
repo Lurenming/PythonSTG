@@ -1,0 +1,285 @@
+{
+  "name": "luastg_ball",
+  "description": "Editable draft generated from LuaSTG background 'ball'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "ball",
+    "lua": "ball.lua"
+  },
+  "textures": {
+    "01": {
+      "path": "ball/01.png",
+      "description": "Imported from ball/01.png"
+    },
+    "02": {
+      "path": "ball/02.png",
+      "description": "Imported from ball/02.png"
+    },
+    "03": {
+      "path": "ball/03.png",
+      "description": "Imported from ball/03.png"
+    },
+    "04": {
+      "path": "ball/04.png",
+      "description": "Imported from ball/04.png"
+    },
+    "05": {
+      "path": "ball/05.png",
+      "description": "Imported from ball/05.png"
+    },
+    "06": {
+      "path": "ball/06.png",
+      "description": "Imported from ball/06.png"
+    },
+    "surface": {
+      "path": "ball/surface.png",
+      "description": "Imported from ball/surface.png"
+    },
+    "surfacell": {
+      "path": "ball/surfacell.png",
+      "description": "Imported from ball/surfacell.png"
+    },
+    "surfacell_2": {
+      "path": "ball/surfacell_.png",
+      "description": "Imported from ball/surfacell_.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      0.0,
+      2.0
+    ],
+    "at": [
+      0.0,
+      2.7,
+      0.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.6,
+    "z_near": 1.0,
+    "z_far": 100.0
+  },
+  "fog": {
+    "enabled": false,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 1000.0,
+    "end": 1000.0
+  },
+  "scroll": {
+    "base_speed": 0.2730000000000001,
+    "direction": [
+      0.0,
+      1.0
+    ]
+  },
+  "layers": [
+    {
+      "name": "01",
+      "texture": "01",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "02",
+      "texture": "02",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "03",
+      "texture": "03",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "04",
+      "texture": "04",
+      "z_order": 3,
+      "z_depth": -0.15000000000000002,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "05",
+      "texture": "05",
+      "z_order": 4,
+      "z_depth": -0.2,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "06",
+      "texture": "06",
+      "z_order": 5,
+      "z_depth": -0.25,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "surface",
+      "texture": "surface",
+      "z_order": 6,
+      "z_depth": -0.30000000000000004,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "surfacell",
+      "texture": "surfacell",
+      "z_order": 7,
+      "z_depth": -0.35000000000000003,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "surfacell_2",
+      "texture": "surfacell_2",
+      "z_order": 8,
+      "z_depth": -0.4,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

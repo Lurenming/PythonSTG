@@ -1,0 +1,77 @@
+{
+  "name": "luastg_cube",
+  "description": "Editable draft generated from LuaSTG background 'cube'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "cube",
+    "lua": "cube.lua"
+  },
+  "textures": {
+    "cube": {
+      "path": "cube/cube.png",
+      "description": "Imported from cube/cube.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      3.3,
+      -3.8
+    ],
+    "at": [
+      0.0,
+      1.5,
+      -0.4
+    ],
+    "up": [
+      -1.8,
+      1.0,
+      0.0
+    ],
+    "fovy": 0.6,
+    "z_near": 1.0,
+    "z_far": 100.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 3.0,
+    "end": 10.0
+  },
+  "scroll": {
+    "base_speed": 0.003,
+    "direction": [
+      0,
+      1
+    ]
+  },
+  "layers": [
+    {
+      "name": "cube",
+      "texture": "cube",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

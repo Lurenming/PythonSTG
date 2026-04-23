@@ -1,0 +1,129 @@
+{
+  "name": "luastg_temple",
+  "description": "Editable draft generated from LuaSTG background 'temple'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "temple",
+    "lua": "temple.lua"
+  },
+  "textures": {
+    "ground": {
+      "path": "temple/ground.png",
+      "description": "Imported from temple/ground.png"
+    },
+    "pillar": {
+      "path": "temple/pillar.png",
+      "description": "Imported from temple/pillar.png"
+    },
+    "road": {
+      "path": "temple/road.png",
+      "description": "Imported from temple/road.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.0,
+      2.5,
+      -3.550000000000003
+    ],
+    "at": [
+      0.15000000000000002,
+      0.35000000000000003,
+      -0.1
+    ],
+    "up": [
+      2.7755575615628914e-17,
+      0.6000000000000001,
+      0.0
+    ],
+    "fovy": 0.35,
+    "z_near": 1.0,
+    "z_far": 10.0
+  },
+  "fog": {
+    "enabled": true,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 5.0,
+    "end": 10.0
+  },
+  "scroll": {
+    "base_speed": 0.7040000000000004,
+    "direction": [
+      0.0,
+      1.0
+    ]
+  },
+  "layers": [
+    {
+      "name": "ground",
+      "texture": "ground",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "pillar",
+      "texture": "pillar",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "road",
+      "texture": "road",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

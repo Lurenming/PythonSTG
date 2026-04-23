@@ -12,6 +12,7 @@ import random
 import math
 from src.game.stage.spellcard import SpellCard
 from src.game.bullet.optimized_pool import CURVE_SIN_SPEED
+from src.game.bullet.tags import TAG_BOMB_PROTECTED_PILLAR
 
 
 # 彩虹颜色序列（随时间循环）
@@ -27,7 +28,7 @@ _PILLAR_OSC = [
     (9.5,  0.07),  (7.5,  0.13),  (5.5,  0.09),  (12.0, 0.06),
 ]
 
-PILLAR_TAG = 99      # 标记所有光柱弹幕
+PILLAR_TAG = TAG_BOMB_PROTECTED_PILLAR      # 标记所有光柱弹幕
 CYCLE_ACTIVE = 300   # 5 秒正常发射
 CYCLE_FREEZE  = 30   # 0.5 秒凝固
 
@@ -116,7 +117,6 @@ class StarSpell4(SpellCard):
                         speed=spd,
                         bullet_type="arrow_l",
                         color="red",
-                        tag=PILLAR_TAG,
                     )
 
                 # 重置周期

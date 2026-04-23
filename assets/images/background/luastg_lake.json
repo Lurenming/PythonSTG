@@ -1,0 +1,129 @@
+{
+  "name": "luastg_lake",
+  "description": "Editable draft generated from LuaSTG background 'lake'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "lake",
+    "lua": "lake.lua"
+  },
+  "textures": {
+    "lake_1": {
+      "path": "lake/lake_1.png",
+      "description": "Imported from lake/lake_1.png"
+    },
+    "lake_2": {
+      "path": "lake/lake_2.png",
+      "description": "Imported from lake/lake_2.png"
+    },
+    "lake_3": {
+      "path": "lake/lake_3.png",
+      "description": "Imported from lake/lake_3.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      0.35,
+      -2.2,
+      2.0
+    ],
+    "at": [
+      0.1,
+      0.0,
+      -0.4
+    ],
+    "up": [
+      0.2,
+      0.0,
+      0.6
+    ],
+    "fovy": 0.35,
+    "z_near": 1.8,
+    "z_far": 4.5
+  },
+  "fog": {
+    "enabled": false,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 0.0,
+    "end": 0.0
+  },
+  "scroll": {
+    "base_speed": 0.003,
+    "direction": [
+      0,
+      1
+    ]
+  },
+  "layers": [
+    {
+      "name": "lake_1",
+      "texture": "lake_1",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "lake_2",
+      "texture": "lake_2",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "lake_3",
+      "texture": "lake_3",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

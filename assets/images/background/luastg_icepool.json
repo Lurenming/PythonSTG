@@ -1,0 +1,181 @@
+{
+  "name": "luastg_icepool",
+  "description": "Editable draft generated from LuaSTG background 'icepool'.",
+  "source": {
+    "kind": "luastg_stage_background",
+    "folder": "icepool",
+    "lua": "icepool.lua"
+  },
+  "textures": {
+    "board": {
+      "path": "icepool/board.png",
+      "description": "Imported from icepool/board.png"
+    },
+    "fog": {
+      "path": "icepool/fog.png",
+      "description": "Imported from icepool/fog.png"
+    },
+    "ice": {
+      "path": "icepool/ice.jpg",
+      "description": "Imported from icepool/ice.jpg"
+    },
+    "ice_2": {
+      "path": "icepool/ice.png",
+      "description": "Imported from icepool/ice.png"
+    },
+    "mask": {
+      "path": "icepool/mask.png",
+      "description": "Imported from icepool/mask.png"
+    }
+  },
+  "camera": {
+    "eye": [
+      -0.05,
+      -2.3,
+      1.1
+    ],
+    "at": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "up": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "fovy": 0.35,
+    "z_near": 1.8,
+    "z_far": 4.5
+  },
+  "fog": {
+    "enabled": false,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "start": 0.0,
+    "end": 0.0
+  },
+  "scroll": {
+    "base_speed": 0.4730000000000001,
+    "direction": [
+      0.0,
+      1.0
+    ]
+  },
+  "layers": [
+    {
+      "name": "board",
+      "texture": "board",
+      "z_order": 0,
+      "z_depth": -0.0,
+      "blend_mode": "normal",
+      "alpha": 1.0,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "fog",
+      "texture": "fog",
+      "z_order": 1,
+      "z_depth": -0.05,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "ice",
+      "texture": "ice",
+      "z_order": 2,
+      "z_depth": -0.1,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "ice_2",
+      "texture": "ice_2",
+      "z_order": 3,
+      "z_depth": -0.15000000000000002,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    },
+    {
+      "name": "mask",
+      "texture": "mask",
+      "z_order": 4,
+      "z_depth": -0.2,
+      "blend_mode": "normal",
+      "alpha": 0.85,
+      "scroll_multiplier": 1.0,
+      "tile": {
+        "x_range": [
+          -1,
+          1
+        ],
+        "y_range": [
+          -4,
+          7
+        ],
+        "size": 1.0
+      },
+      "variants": [],
+      "enabled": true
+    }
+  ]
+}

@@ -153,6 +153,13 @@ class EditorLauncher(QMainWindow):
         card5.mousePressEvent = lambda e: self._launch("portrait_editor/run.py")
         cards_layout.addWidget(card5, 1, 1)
 
+        # 背景编辑器
+        card6 = ToolCard(
+            "背景编辑", "查看 LuaSTG 背景资源，生成并编辑数据驱动背景配置",
+            "🌌", "#74c7ec")
+        card6.mousePressEvent = lambda e: self._launch("stage/background_editor.py")
+        cards_layout.addWidget(card6, 1, 2)
+
         layout.addLayout(cards_layout)
         layout.addStretch()
 

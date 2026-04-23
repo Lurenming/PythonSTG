@@ -1,7 +1,6 @@
 {
   "name": "gensokyosora",
   "description": "幻想乡天空 - 简单的天空滚动",
-  
   "textures": {
     "sky": {
       "path": "gensokyosora/aosora.png",
@@ -20,28 +19,44 @@
       "description": "云层3"
     }
   },
-  
   "camera": {
-    "eye": [0.0, 0.0, 1.0],
-    "at": [0.0, 0.0, 0.0],
-    "up": [0.0, 1.0, 0.0],
+    "eye": [
+      0.0,
+      -1.4500000000000002,
+      1.0
+    ],
+    "at": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
     "fovy": 1.0,
     "z_near": 0.1,
     "z_far": 10.0
   },
-  
   "fog": {
-    "enabled": false,
-    "color": [0, 0, 0, 0],
-    "start": 0.0,
-    "end": 0.0
+    "enabled": true,
+    "color": [
+      255,
+      255,
+      255,
+      255
+    ],
+    "start": 4.0,
+    "end": 2.0
   },
-  
   "scroll": {
-    "base_speed": 0.003,
-    "direction": [0, 1]
+    "base_speed": 0.5120000000000002,
+    "direction": [
+      0.0,
+      1.0
+    ]
   },
-  
   "layers": [
     {
       "name": "sky_base",
@@ -52,8 +67,14 @@
       "alpha": 1.0,
       "scroll_multiplier": 0.5,
       "tile": {
-        "x_range": [-2, 3],
-        "y_range": [-2, 3],
+        "x_range": [
+          -2,
+          3
+        ],
+        "y_range": [
+          -2,
+          3
+        ],
         "size": 1.0
       }
     },
@@ -66,8 +87,14 @@
       "alpha": 0.8,
       "scroll_multiplier": 0.7,
       "tile": {
-        "x_range": [-2, 3],
-        "y_range": [-2, 3],
+        "x_range": [
+          -2,
+          3
+        ],
+        "y_range": [
+          -2,
+          3
+        ],
         "size": 1.0
       }
     },
@@ -80,8 +107,14 @@
       "alpha": 0.5,
       "scroll_multiplier": 1.0,
       "tile": {
-        "x_range": [-2, 3],
-        "y_range": [-2, 3],
+        "x_range": [
+          -2,
+          3
+        ],
+        "y_range": [
+          -2,
+          3
+        ],
         "size": 1.0
       }
     }

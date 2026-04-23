@@ -415,6 +415,32 @@ class ItemPool:
         self.item_type[slots] = int(item_type)
         self.sprite_index[slots] = ITEM_TEXTURE_INDEX.get(item_type, 0)
 
+    def spawn_points_from_positions(self, positions, attract: bool = True) -> int:
+        """Spawn POINT items at bullet positions using the SoA batch allocator."""
+        if positions is None:
+            return 0
+
+        positions = np.asarray(positions, dtype=np.float32)
+        if positions.ndim != 2 or positions.shape[1] < 2:
+            return 0
+
+        slots = self._alloc_batch(int(positions.shape[0]))
+        n = len(slots)
+        if n == 0:
+            return 0
+
+        pos = positions[:n]
+        self.x[slots] = np.clip(pos[:, 0], -0.95, 0.95).astype(np.float32)
+        self.y[slots] = pos[:, 1].astype(np.float32)
+        self.vx[slots] = 0.0
+        self.vy[slots] = 0.0
+        self.timer[slots] = 24 if attract else 0
+        self.alive[slots] = 1
+        self.attracting[slots] = 1 if attract else 0
+        self.item_type[slots] = int(ItemType.POINT)
+        self.sprite_index[slots] = ITEM_TEXTURE_INDEX.get(ItemType.POINT, 0)
+        return n
+
     def update(self, player_x, player_y, dt: float = 1/60):
         """更新所有物品（直接操作 SoA 数组，零拷贝）"""
         # 每帧更新收集连击计时器
@@ -582,9 +608,12 @@ class ItemPool:
 
     def collect_all(self, player_x: float, player_y: float):
         """收集所有物品（清屏/Boss击破时）"""
-        for i in range(self._count):
-            if self.alive[i]:
-                self.attracting[i] = 1
+        if self._count == 0:
+            return
+        alive = self.alive[:self._count] == 1
+        active_indices = np.where(alive)[0]
+        self.attracting[active_indices] = 1
+        self.timer[active_indices] = np.maximum(self.timer[active_indices], 24)
 
     def get_active_items(self) -> List[Item]:
         """获取所有活动物品（兼容旧接口）"""

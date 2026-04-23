@@ -20,10 +20,11 @@ class SpeedYinYang(EnemyScript):
         move_coro = self.move_linear(self.target_x - self.x, self.target_y - self.y, duration=self.fly_duration)
         frame = 0
         while True:
+            moving = True
             try:
                 next(move_coro)
             except StopIteration:
-                pass
+                moving = False
                 
             # 每 4 帧释放一团烟雾（尾气），只有在屏幕内时才释放
             if frame % 4 == 0 and -1.0 <= self.x <= 1.0 and -1.0 <= self.y <= 1.0:
@@ -36,7 +37,7 @@ class SpeedYinYang(EnemyScript):
                 )
             
             # 超出边界自动销毁
-            if self.y < -1.5 or self.x > 1.8 or self.x < -1.8:
+            if not moving or self.y < -1.5 or self.x > 1.8 or self.x < -1.8:
                 break
             
             await self.wait(1)

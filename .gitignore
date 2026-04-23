@@ -1,6 +1,9 @@
 /luastg_game/
 /trash/
 
+# QQ Bot —— 含 Token / Access Token，整个目录不入库
+/Mod/
+
 # Python bytecode/cache
 **/__pycache__/
 *.py[cod]

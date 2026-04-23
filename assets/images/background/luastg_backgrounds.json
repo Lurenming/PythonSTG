@@ -1,0 +1,51 @@
+{
+  "source": "luastg_game/plugins/StageBackgroundExtensions/THlib/background",
+  "copied_at": "2026-04-23",
+  "note": "Original LuaSTG assets and Lua scene scripts were copied for local project use. Lua-only scenes still need Python renderer ports before they can be selected directly by StageScript.background.",
+  "directly_loadable": {
+    "data_driven_json": [
+      "bamboo",
+      "gensokyosora",
+      "lake",
+      "temple"
+    ],
+    "procedural_python": [
+      "magic_forest",
+      "magic_forest_fast",
+      "river",
+      "spellcard",
+      "stage1_bg",
+      "stage2_bg",
+      "world"
+    ]
+  },
+  "copied_original_backgrounds": [
+    "ball",
+    "bamboo",
+    "bamboo2",
+    "BG_A1",
+    "cube",
+    "galaxy",
+    "gensokyosora",
+    "gzz_stage04bg",
+    "gzz_stg6bg",
+    "hongmoguan",
+    "hongmoguanB",
+    "icepool",
+    "lake",
+    "le03_5",
+    "magic_forest",
+    "magic_forest_fast",
+    "river",
+    "spellcard",
+    "stage3bg",
+    "stage4bg",
+    "starlight",
+    "temple",
+    "temple2",
+    "temple3",
+    "tkz_stage3",
+    "woods",
+    "world"
+  ]
+}

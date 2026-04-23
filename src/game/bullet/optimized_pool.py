@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from src.core.sprite_registry import SpriteRegistry, get_sprite_registry
 from src.core.config import get_config
+from src.game.bullet.tags import BOMB_PROTECTED_TAGS
 
 
 # ============= Flags 位常量 =============
@@ -378,10 +379,38 @@ class OptimizedBulletPool:
 
     # ===== Tag 系统 =====
 
+    def _clear_mask_now(self, mask) -> np.ndarray:
+        """Clear alive bullets matching mask and return their positions."""
+        indices = np.where(mask)[0].astype(np.intp)
+        if indices.size == 0:
+            return np.zeros((0, 2), dtype=np.float32)
+
+        positions = self.data['pos'][indices].copy()
+        self.data['alive'][indices] = 0
+        self.data['time_scale'][indices] = 1.0
+        self.last_alive[indices] = 0
+
+        for idx in indices.tolist():
+            idx = int(idx)
+            self.death_handlers.pop(idx, None)
+            self.polar_motions.pop(idx, None)
+            self.emitter_callbacks.pop(idx, None)
+            self.free_indices.append(idx)
+
+        return positions
+
     def clear_by_tag(self, tag: int):
         """按标签消除所有子弹"""
         mask = (self.data['alive'] == 1) & (self.data['tag'] == tag)
-        self.data['alive'][mask] = 0
+        self._clear_mask_now(mask)
+
+    def cancel_for_bomb(self, protected_tags=None) -> np.ndarray:
+        """Cancel all bomb-clearable bullets and return canceled positions."""
+        tags = BOMB_PROTECTED_TAGS if protected_tags is None else protected_tags
+        alive = self.data['alive'] == 1
+        emitters = (self.data['flags'] & FLAG_IS_EMITTER) != 0
+        protected = np.isin(self.data['tag'], tags)
+        return self._clear_mask_now(alive & ~emitters & ~protected)
 
     def set_time_scale_by_tag(self, tag: int, time_scale: float):
         """按标签设置时间缩放"""

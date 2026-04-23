@@ -676,19 +676,33 @@ class BackgroundRenderer:
             是否加载成功
         """
         from .data_driven_background import DataDrivenBackground, list_available_backgrounds
+        from .procedural_background import create_background, list_backgrounds
         
         if self.data_background is None:
             self.data_background = DataDrivenBackground(self)
         
-        if self.data_background.load_by_name(name):
-            # 清除旧的程序化背景
-            self.procedural_background = None
-            return True
-        else:
-            available = list_available_backgrounds()
-            print(f"[BackgroundRenderer] 未找到背景配置: {name}")
+        json_path = os.path.join(DataDrivenBackground.ASSET_BASE, f"{name}.json")
+        if os.path.exists(json_path):
+            if self.data_background.load_by_name(name):
+                # 清除旧的程序化背景
+                self.procedural_background = None
+                return True
+            available = sorted(set(list_available_backgrounds()) | set(list_backgrounds()))
+            print(f"[BackgroundRenderer] 背景配置加载失败: {name}")
             print(f"  可用背景: {', '.join(available)}")
             return False
+
+        procedural = create_background(name, self)
+        if procedural:
+            self.procedural_background = procedural
+            self.data_background = None
+            print(f"[BackgroundRenderer] 已加载程序化背景: {name}")
+            return True
+
+        available = sorted(set(list_available_backgrounds()) | set(list_backgrounds()))
+        print(f"[BackgroundRenderer] 未找到背景配置: {name}")
+        print(f"  可用背景: {', '.join(available)}")
+        return False
     
     def load_procedural(self, name: str) -> bool:
         """

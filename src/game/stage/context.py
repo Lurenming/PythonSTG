@@ -227,6 +227,50 @@ class StageContext(SpellCardContext):
             if bullet_idx in self._bullet_indices:
                 self._bullet_indices.remove(bullet_idx)
 
+    def remove_bullets(self, bullet_indices):
+        """批量移除子弹，避免符卡清屏时逐个 list.remove 造成卡顿。"""
+        if bullet_indices is None or len(bullet_indices) == 0:
+            return
+
+        alive = self.bullet_pool.data['alive']
+        max_len = len(alive)
+        indices = np.fromiter(
+            (int(idx) for idx in bullet_indices if 0 <= int(idx) < max_len),
+            dtype=np.intp
+        )
+        if indices.size == 0:
+            return
+
+        alive[indices] = 0
+        remove_set = set(indices.tolist())
+        self._bullet_indices = [
+            idx for idx in self._bullet_indices if idx not in remove_set
+        ]
+
+    def bullets_to_items(self, bullet_indices):
+        """批量将子弹转为 point 道具。"""
+        if bullet_indices is None or len(bullet_indices) == 0:
+            return
+        if not self._item_pool:
+            self.remove_bullets(bullet_indices)
+            return
+
+        alive = self.bullet_pool.data['alive']
+        max_len = len(alive)
+        indices = np.fromiter(
+            (int(idx) for idx in bullet_indices
+             if 0 <= int(idx) < max_len and alive[int(idx)] == 1),
+            dtype=np.intp
+        )
+        if indices.size == 0:
+            return
+
+        positions = self.bullet_pool.data['pos'][indices].copy()
+        from ..item import ItemType
+        for bx, by in positions:
+            self._item_pool.spawn(float(bx), float(by), ItemType.POINT)
+        self.remove_bullets(indices.tolist())
+
     def bullet_to_item(self, bullet_idx: int):
         """子弹转化为道具"""
         if self._item_pool and 0 <= bullet_idx < len(self.bullet_pool.data['alive']):
@@ -250,12 +294,9 @@ class StageContext(SpellCardContext):
             self.bullet_pool.clear_by_tag(tag)
             return
         mask = (self.bullet_pool.data['alive'] == 1) & (self.bullet_pool.data['tag'] == tag)
-        indices = np.where(mask)[0]
-        from ..item import ItemType
-        for idx in indices:
-            bx, by = self.bullet_pool.data['pos'][idx]
-            self._item_pool.spawn(float(bx), float(by), ItemType.POINT)
-            self.bullet_pool.data['alive'][idx] = 0
+        positions = self.bullet_pool.data['pos'][mask].copy()
+        self._item_pool.spawn_points_from_positions(positions, attract=True)
+        self.bullet_pool.clear_by_tag(tag)
 
     def set_time_scale(self, scale: float, tag: int = None):
         """设置子弹时间缩放（tag=None 影响全部）"""

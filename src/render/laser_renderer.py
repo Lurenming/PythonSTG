@@ -215,39 +215,60 @@ class LaserRenderer:
         vertex_count = len(vertices) // 2
         self.vao.render(moderngl.TRIANGLES, vertices=vertex_count)
     
-    def _build_laser_geometry(self, data: Dict, 
+    def _build_laser_geometry(self, data: Dict,
                               vertices: list, texcoords: list, colors: list):
         """
         构建单个激光的几何体（三段式）
-        
+
         参考LuaSTG的render方法：
         - 头部从起点开始，长度l1，纹理按头部宽度缩放
         - 身体从l1处开始，长度l2
         - 尾部从l1+l2处开始，长度l3
         - 纹理锚点在左边中心
+
+        坐标系说明：
+        - 输入为游戏坐标（x∈[-1,1], y∈[-1.2,1.2]）
+        - shader 期待像素坐标（0~base_width, 0~base_height），需要转换
+        - 转换公式：scale = base_width/2
+            pixel_x = (game_x + 1) * scale
+            pixel_y = base_height/2 - game_y * scale
+          （y方向因 y_scale = base_width/base_height 而与 x 共用相同的 scale）
         """
-        x = data['x']
-        y = data['y']
+        gx = data['x']
+        gy = data['y']
         angle = math.radians(data['angle'])
         l1 = data['l1']
         l2 = data['l2']
         l3 = data['l3']
         width = data['width']
         alpha = data['alpha']
-        
+
+        # ── 游戏坐标 → 像素坐标转换 ──────────────────────────
+        bw, bh = self.base_size
+        scale = bw / 2.0          # 像素/游戏单位，x 和 y 方向相同
+        x = (gx + 1.0) * scale
+        y = bh / 2.0 - gy * scale
+
+        # 长度单位转换（游戏单位 → 像素）
+        l1 *= scale
+        l2 *= scale
+        l3 *= scale
+
         tex_rects = data.get('texture_rects')
-        
-        # 计算方向向量
+
+        # 方向向量（像素空间中 y 轴翻转，所以 sin_a 取反）
         cos_a = math.cos(angle)
         sin_a = math.sin(angle)
-        
-        # 垂直方向
-        perp_x = -sin_a
-        perp_y = cos_a
-        
+        cos_pix =  cos_a   # x 方向不变
+        sin_pix = -sin_a   # y 翻转
+
+        # 垂直方向（像素空间中与激光方向正交）
+        perp_x =  sin_a    # = -sin_pix 旋转 90° CCW
+        perp_y =  cos_a    # =  cos_pix
+
         # 颜色（白色 * alpha，让纹理颜色显示）
         color = (1.0, 1.0, 1.0, alpha)
-        
+
         # 获取纹理尺寸用于UV计算
         if tex_rects:
             tex_file = tex_rects.get('texture_file', '')
@@ -256,24 +277,13 @@ class LaserRenderer:
                 tex_width, tex_height = texture.size
             else:
                 tex_width, tex_height = 256, 256
-            
-            # 根据纹理数据计算实际宽度缩放
-            # LuaSTG: w = (self.w / 2) / data[6] * data[4] / data[6]
-            # data[4] = h (row_height / 2), data[6] = h - margin
-            row_h = tex_rects.get('row_height', 16)
-            margin = tex_rects.get('margin', 1)
-            half_h = row_h / 2
-            effective_h = half_h - margin
-            
-            # 计算实际渲染宽度
-            if effective_h > 0:
-                render_width = (width / 2) / effective_h * half_h
-            else:
-                render_width = width / 2
+
+            # 宽度：游戏单位 → 像素，简单乘以 scale
+            render_width = (width / 2.0) * scale
         else:
             tex_width, tex_height = 256, 256
-            render_width = width / 2
-        
+            render_width = (width / 2.0) * scale
+
         half_width = render_width
         
         # 当前绘制位置
@@ -292,8 +302,8 @@ class LaserRenderer:
             v1 = (hy + hh) / tex_height
             
             # 头部四角
-            end_x = curr_x + l1 * cos_a
-            end_y = curr_y + l1 * sin_a
+            end_x = curr_x + l1 * cos_pix
+            end_y = curr_y + l1 * sin_pix
             
             p1 = (curr_x + perp_x * half_width, curr_y + perp_y * half_width)
             p2 = (curr_x - perp_x * half_width, curr_y - perp_y * half_width)
@@ -323,8 +333,8 @@ class LaserRenderer:
             u1 = (bx + bw) / tex_width
             v1 = (by + bh) / tex_height
             
-            end_x = curr_x + l2 * cos_a
-            end_y = curr_y + l2 * sin_a
+            end_x = curr_x + l2 * cos_pix
+            end_y = curr_y + l2 * sin_pix
             
             p1 = (curr_x + perp_x * half_width, curr_y + perp_y * half_width)
             p2 = (curr_x - perp_x * half_width, curr_y - perp_y * half_width)
@@ -352,8 +362,8 @@ class LaserRenderer:
             u1 = (tx + tw) / tex_width
             v1 = (ty + th) / tex_height
             
-            end_x = curr_x + l3 * cos_a
-            end_y = curr_y + l3 * sin_a
+            end_x = curr_x + l3 * cos_pix
+            end_y = curr_y + l3 * sin_pix
             
             p1 = (curr_x + perp_x * half_width, curr_y + perp_y * half_width)
             p2 = (curr_x - perp_x * half_width, curr_y - perp_y * half_width)
@@ -460,12 +470,19 @@ class LaserRenderer:
             u0, v0, u1, v1 = 0, 0, 1, 1
         
         color = (1.0, 1.0, 1.0, alpha)
-        half_width = width / 2
+
+        # 游戏坐标 → 像素坐标转换
+        bw, bh = self.base_size
+        scale = bw / 2.0
+        half_width = (width / 2.0) * scale
+
         path_length = len(path_x)
-        
+
         for i in range(path_length - 1):
-            x1, y1 = path_x[i], path_y[i]
-            x2, y2 = path_x[i + 1], path_y[i + 1]
+            x1 = (path_x[i]     + 1.0) * scale
+            y1 =  bh / 2.0 - path_y[i]     * scale
+            x2 = (path_x[i + 1] + 1.0) * scale
+            y2 =  bh / 2.0 - path_y[i + 1] * scale
             
             dx = x2 - x1
             dy = y2 - y1

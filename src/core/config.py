@@ -86,7 +86,10 @@ class GameConfig:
     game_scale: int = 2  # 游戏区域放大倍数
     
     # 游戏视口边距
-    viewport_margin_x: int = 32
+    # 注：viewport_margin_x=64 是为了让游戏区域左上角对齐 assets/ui/ui_bg.png
+    # 中黑色弹幕区域框的左上角（图片640x480，黑框从image x=32 起；以2x缩放到窗口
+    # 1280x960 即窗口x=64）。如果更换背景图，请同步调整此值。
+    viewport_margin_x: int = 64
     
     # ===== 计算属性 =====
     @property
@@ -206,7 +209,7 @@ class GameConfig:
             window_width=data.get('window_width', 1280),
             window_height=data.get('window_height', 960),
             game_scale=data.get('game_scale', 2),
-            viewport_margin_x=data.get('viewport_margin_x', 32),
+            viewport_margin_x=data.get('viewport_margin_x', 64),
         )
     
     def save(self, filepath: str):

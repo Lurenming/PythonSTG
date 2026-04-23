@@ -9,6 +9,7 @@ from .optimized_pool import (
     FLAG_BOUNCE_X, FLAG_BOUNCE_Y, FLAG_IS_EMITTER, FLAG_RENDER_ANGLE_LOCKED, FLAG_IS_POLAR,
     CURVE_NONE, CURVE_SIN_SPEED, CURVE_SIN_ANGLE, CURVE_COS_SPEED, CURVE_LINEAR_SPEED,
 )
+from .tags import BOMB_PROTECTED_TAGS
 
 class SpawnRequest:
     """生成请求"""
@@ -233,9 +234,36 @@ class BulletPool:
 
     # ===== Tag 系统 =====
 
+    def _clear_mask_now(self, mask):
+        """Clear alive bullets matching mask and return their positions."""
+        indices = np.where(mask)[0].astype(np.intp)
+        if indices.size == 0:
+            return np.zeros((0, 2), dtype=np.float32)
+
+        positions = self.data['pos'][indices].copy()
+        self.data['alive'][indices] = 0
+        self.data['time_scale'][indices] = 1.0
+        self.last_alive[indices] = 0
+
+        for idx in indices.tolist():
+            idx = int(idx)
+            self.death_handlers.pop(idx, None)
+            self.polar_motions.pop(idx, None)
+            self.emitter_callbacks.pop(idx, None)
+            self.free_indices.append(idx)
+
+        return positions
+
     def clear_by_tag(self, tag):
         mask = (self.data['alive'] == 1) & (self.data['tag'] == tag)
-        self.data['alive'][mask] = 0
+        self._clear_mask_now(mask)
+
+    def cancel_for_bomb(self, protected_tags=None):
+        tags = BOMB_PROTECTED_TAGS if protected_tags is None else protected_tags
+        alive = self.data['alive'] == 1
+        emitters = (self.data['flags'] & FLAG_IS_EMITTER) != 0
+        protected = np.isin(self.data['tag'], tags)
+        return self._clear_mask_now(alive & ~emitters & ~protected)
 
     def set_time_scale_by_tag(self, tag, time_scale):
         mask = (self.data['alive'] == 1) & (self.data['tag'] == tag)
